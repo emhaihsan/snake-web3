@@ -192,10 +192,13 @@ export default function Home() {
   };
 
   const generateFood = () => {
-    const newFood = {
-      x: Math.floor(Math.random() * (CANVAS_SIZE / GRID_SIZE)),
-      y: Math.floor(Math.random() * (CANVAS_SIZE / GRID_SIZE)),
-    };
+    let newFood: { x: number; y: number };
+    do {
+      newFood = {
+        x: Math.floor(Math.random() * (CANVAS_SIZE / GRID_SIZE)),
+        y: Math.floor(Math.random() * (CANVAS_SIZE / GRID_SIZE)),
+      };
+    } while (snake.some(segment => segment.x === newFood.x && segment.y === newFood.y));
     setFood(newFood);
   };
 
