@@ -7,6 +7,7 @@ import WalletButton from './WalletButton';
 import { LeaderboardEntry, FoodParticle, SnakeSegment, Food, Direction } from '../types/game';
 import SnakeGameABI from '../web3/abi/SnakeGame.json';
 import ULOTokenABI from '../web3/abi/ULOToken.json';
+import toast from 'react-hot-toast';
 
 export default function Game() {
   const { address, isConnected } = useAccount();
@@ -22,6 +23,7 @@ export default function Game() {
   const [particles, setParticles] = useState<FoodParticle[]>([]);
   const [isMinting, setIsMinting] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
 
   // Game constants
   const CANVAS_SIZE = 600;
@@ -128,10 +130,12 @@ export default function Game() {
   };
 
   const submitScoreAndMint = async () => {
-    if (!isConnected || !address || isMinting) return;
+    if (!address || isMinting) return;
     
     try {
       setIsMinting(true);
+      
+      // Get wallet client
       const walletClient = await getWalletClient();
       if (!walletClient) {
         throw new Error('Wallet client not initialized');
@@ -141,23 +145,29 @@ export default function Game() {
         address: SNAKE_GAME_ADDRESS,
         abi: SnakeGameABI.abi,
         functionName: 'submitScore',
-        args: [playerName || '', Number(score), Number(level)],
+        args: [playerName || '', BigInt(score), level],
         account: address,
       });
-      
+
       const hash = await walletClient.writeContract(request);
-      console.log('Score submitted and tokens minted, transaction hash:', hash);
       
-      // Wait for transaction and update leaderboard
-      await publicClient.waitForTransactionReceipt({ hash });
-      await fetchLeaderboard();
-      
-      setIsMinting(false);
-      alert('Score submitted and tokens minted successfully!');
+      // Wait for transaction and update UI
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+      if (receipt.status === 'success') {
+        toast.success('Score submitted and tokens minted successfully!');
+        // Refresh leaderboard after successful minting
+        await fetchLeaderboard();
+        // Return to main menu
+        backToMenu();
+      } else {
+        toast.error('Transaction failed');
+      }
     } catch (error: any) {
       console.error('Error submitting score:', error);
+      toast.error(error?.message || 'Failed to submit score');
+    } finally {
       setIsMinting(false);
-      alert(`Failed to submit score: ${error?.message || 'Unknown error'}`);
     }
   };
 
@@ -167,30 +177,30 @@ export default function Game() {
   };
 
   const fetchLeaderboard = async () => {
+    if (!publicClient) return;
+    
     try {
+      setIsLoadingLeaderboard(true);
       const data = (await publicClient.readContract({
         address: SNAKE_GAME_ADDRESS,
         abi: SnakeGameABI.abi,
         functionName: 'getRecentScores',
-        args: [Number(level), Number(10)],
-      })) as Array<{
-        player: string;
-        playerName: string;
-        score: bigint;
-        level: number;
-        timestamp: bigint;
-      }>;
-      
-      setLeaderboard(data.map((score) => ({
-        playerAddress: score.player, // Map 'player' to 'playerAddress'
-        playerName: score.playerName,
-        score: Number(score.score),
-        level: Number(score.level),
-        timestamp: Number(score.timestamp)
-      })));
+        args: [level, 10n], // Get top 10 scores
+      })) as LeaderboardEntry[];
+
+      // Format and sort the leaderboard data
+      const formattedData = data.map((entry) => ({
+        ...entry,
+        score: Number(entry.score),
+        timestamp: Number(entry.timestamp),
+      }));
+
+      setLeaderboard(formattedData);
     } catch (error: any) {
       console.error('Error fetching leaderboard:', error);
-      alert(`Failed to fetch leaderboard: ${error?.message || 'Unknown error'}`);
+      toast.error(error?.message || 'Failed to fetch leaderboard');
+    } finally {
+      setIsLoadingLeaderboard(false);
     }
   };
 
@@ -199,6 +209,10 @@ export default function Game() {
       fetchLeaderboard();
     }
   }, [level, isConnected]);
+
+  useEffect(() => {
+    fetchLeaderboard();
+  }, [level, publicClient]);
 
   // Initialize game
   useEffect(() => {
@@ -389,14 +403,15 @@ export default function Game() {
               {/* Player Name Input */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Enter your name to submit score
+                  Enter your name (optional)
                 </label>
                 <input
                   type="text"
-                  placeholder="Your name (optional)"
+                  placeholder="Your name"
                   value={playerName}
                   onChange={(e) => setPlayerName(e.target.value)}
                   className="w-full p-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  disabled={isMinting}
                 />
               </div>
               
@@ -412,7 +427,7 @@ export default function Game() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Submitting...
+                      Submitting & Minting...
                     </span>
                   ) : (
                     'Submit Score & Get Tokens'
@@ -421,7 +436,8 @@ export default function Game() {
                 
                 <button
                   onClick={backToMenu}
-                  className="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg transition-all duration-200"
+                  disabled={isMinting}
+                  className="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg transition-all duration-200 disabled:opacity-50"
                 >
                   Back to Menu
                 </button>

@@ -68,10 +68,25 @@ contract SnakeGame is Ownable {
             player.highestScore = score;
         }
 
+        // Format player name: "address (name)" if name provided, else just address
+        string memory formattedName;
+        if (bytes(playerName).length > 0) {
+            formattedName = string(
+                abi.encodePacked(
+                    addressToString(msg.sender),
+                    " (",
+                    playerName,
+                    ")"
+                )
+            );
+        } else {
+            formattedName = addressToString(msg.sender);
+        }
+
         // Add score to leaderboard
         Score memory newScore = Score({
             player: msg.sender,
-            playerName: playerName,
+            playerName: formattedName,
             score: score,
             level: level,
             timestamp: block.timestamp
@@ -83,12 +98,28 @@ contract SnakeGame is Ownable {
 
         emit ScoreSubmitted(
             msg.sender,
-            playerName,
+            formattedName,
             score,
             level,
             block.timestamp
         );
         emit TokensMinted(msg.sender, score);
+    }
+
+    // Helper function to convert address to string
+    function addressToString(
+        address _addr
+    ) internal pure returns (string memory) {
+        bytes32 value = bytes32(uint256(uint160(_addr)));
+        bytes memory alphabet = "0123456789abcdef";
+        bytes memory str = new bytes(42);
+        str[0] = "0";
+        str[1] = "x";
+        for (uint256 i = 0; i < 20; i++) {
+            str[2 + i * 2] = alphabet[uint8(value[i + 12] >> 4)];
+            str[3 + i * 2] = alphabet[uint8(value[i + 12] & 0x0f)];
+        }
+        return string(str);
     }
 
     // Get recent scores with limit
