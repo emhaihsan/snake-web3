@@ -1,4 +1,6 @@
 'use client';
+// Di bagian atas file, tambahkan import
+import WalletButton from './WalletButton';
 
 import { useEffect, useRef, useState } from 'react';
 import { LeaderboardEntry, FoodParticle, SnakeSegment, Food, Direction } from '../types/game';
@@ -318,6 +320,9 @@ export default function Game() {
       )}
 
       <div className="w-full max-w-7xl">
+      <div className="flex justify-end mb-4">
+    <WalletButton />
+  </div>
         <h1 className="text-6xl font-bold mb-8 text-center bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
           Web3 Snake Game
         </h1>
