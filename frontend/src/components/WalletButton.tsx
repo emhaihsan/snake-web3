@@ -43,17 +43,6 @@ export default function WalletButton() {
                     onClick={openChainModal}
                     className="bg-gray-800 text-white px-4 py-2 rounded-full flex items-center gap-2"
                   >
-                    {chain.hasIcon && (
-                      <div style={{ width: 16, height: 16 }}>
-                        {chain.iconUrl && (
-                          <img
-                            alt={chain.name ?? 'Chain icon'}
-                            src={chain.iconUrl}
-                            style={{ width: 16, height: 16 }}
-                          />
-                        )}
-                      </div>
-                    )}
                     {chain.name}
                   </button>
 

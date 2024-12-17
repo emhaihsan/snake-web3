@@ -1,6 +1,5 @@
 import '@rainbow-me/rainbowkit/styles.css';
 import { createConfig, http } from 'wagmi';
-import { getDefaultWallets } from '@rainbow-me/rainbowkit';
 
 // Define Lisk Sepolia chain
 export const liskSepolia = {
@@ -16,11 +15,6 @@ export const liskSepolia = {
     },
     testnet: true,
 } as const;
-
-const { wallets } = getDefaultWallets({
-    appName: 'Snake Web3',
-    projectId: '43504d655ed509fcaa690ba32b3c13aa',
-});
 
 export const config = createConfig({
     chains: [liskSepolia],

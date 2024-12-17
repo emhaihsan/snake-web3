@@ -7,6 +7,12 @@ import WalletButton from './WalletButton';
 import { LeaderboardEntry, FoodParticle, SnakeSegment, Food, Direction } from '../types/game';
 import SnakeGameABI from '../web3/abi/SnakeGame.json';
 
+type ContractError = {
+  message?: string;
+  shortMessage?: string;
+  cause?: unknown;
+};
+
 export default function Game() {
   const { address, isConnected } = useAccount();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -160,9 +166,10 @@ export default function Game() {
       setGameOver(false);
       setGameStarted(true);
       setPlayerName(''); // Reset player name when starting new game
-    } catch (error: any) {
-      console.error('Error starting game:', error);
-      alert(`Failed to start game: ${error?.message || 'Unknown error'}`);
+    } catch (error) {
+      const contractError = error as ContractError;
+      console.error('Error starting game:', contractError);
+      alert(`Failed to start game: ${contractError?.message || contractError?.shortMessage || 'Unknown error'}`);
     } finally {
       setIsStarting(false);
     }
@@ -205,9 +212,10 @@ export default function Game() {
       } else {
         alert('Transaction failed');
       }
-    } catch (error: any) {
-      console.error('Error submitting score:', error);
-      alert(error?.message || 'Failed to submit score');
+    } catch (error) {
+      const contractError = error as ContractError;
+      console.error('Error submitting score:', contractError);
+      alert(contractError?.message || contractError?.shortMessage || 'Failed to submit score');
     } finally {
       setIsMinting(false);
     }
@@ -238,9 +246,10 @@ export default function Game() {
         .sort((a, b) => b.score - a.score);
 
       setLeaderboard(formattedData);
-    } catch (error: any) {
-      console.error('Error fetching leaderboard:', error);
-      alert(error?.message || 'Failed to fetch leaderboard');
+    } catch (error) {
+      const contractError = error as ContractError;
+      console.error('Error fetching leaderboard:', contractError);
+      alert(contractError?.message || contractError?.shortMessage || 'Failed to fetch leaderboard');
     } finally {
       setIsLoadingLeaderboard(false);
     }
