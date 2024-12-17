@@ -24,6 +24,7 @@ export default function Game() {
   const [isMinting, setIsMinting] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
 
   // Game constants
   const CANVAS_SIZE = 600;
@@ -33,14 +34,50 @@ export default function Game() {
 
   // Level information
   const getLevelInfo = (level: number) => {
-    const infos = {
-      1: { name: "Beginner", speed: "Slow", points: "1x" },
-      2: { name: "Intermediate", speed: "Medium", points: "2x" },
-      3: { name: "Advanced", speed: "Fast", points: "3x" },
-      4: { name: "Expert", speed: "Very Fast", points: "4x" },
-      5: { name: "Master", speed: "Insane", points: "5x" }
-    };
-    return infos[level as keyof typeof infos];
+    switch (level) {
+      case 1:
+        return {
+          name: 'Easy',
+          speed: 'Slow',
+          points: '1x',
+          info: 'Perfect for beginners. Snake moves slowly, giving you time to think.'
+        };
+      case 2:
+        return {
+          name: 'Medium',
+          speed: 'Normal',
+          points: '2x',
+          info: 'Balanced difficulty. Requires quick thinking and good reflexes.'
+        };
+      case 3:
+        return {
+          name: 'Hard',
+          speed: 'Fast',
+          points: '3x',
+          info: 'For experienced players. Snake moves quickly, test your skills!'
+        };
+      case 4:
+        return {
+          name: 'Expert',
+          speed: 'Very Fast',
+          points: '4x',
+          info: 'The ultimate challenge. Only for snake masters!'
+        };
+      case 5:
+        return {
+          name: 'Master',
+          speed: 'Insane',
+          points: '5x',
+          info: 'Insane speed and reflexes required. Are you up for the challenge?'
+        };
+      default:
+        return {
+          name: 'Easy',
+          speed: 'Slow',
+          points: '1x',
+          info: 'Perfect for beginners. Snake moves slowly.'
+        };
+    }
   };
 
   // Get snake speed based on level
@@ -90,12 +127,10 @@ export default function Game() {
 
   // Start game with smart contract
   const startGame = async () => {
-    if (!isConnected || !address) {
-      alert('Please connect your wallet first');
-      return;
-    }
+    if (!isConnected || isStarting) return;
     
     try {
+      setIsStarting(true);
       const walletClient = await getWalletClient();
       if (!walletClient) {
         throw new Error('Wallet client not initialized');
@@ -119,9 +154,12 @@ export default function Game() {
       setScore(0);
       setGameOver(false);
       setGameStarted(true);
+      setPlayerName(''); // Reset player name when starting new game
     } catch (error: any) {
       console.error('Error starting game:', error);
       alert(`Failed to start game: ${error?.message || 'Unknown error'}`);
+    } finally {
+      setIsStarting(false);
     }
   };
 
@@ -185,7 +223,7 @@ export default function Game() {
         address: SNAKE_GAME_ADDRESS,
         abi: SnakeGameABI.abi,
         functionName: 'getRecentScores',
-        args: [level, 10n], // Get top 10 scores
+        args: [level, BigInt(10)], // Convert to BigInt without literal
       })) as LeaderboardEntry[];
 
       // Format and sort the leaderboard data
@@ -535,13 +573,24 @@ export default function Game() {
                     ))}
                   </select>
                   <div className="text-sm text-gray-400">
-                    {getLevelInfo(level).description}
+                    {getLevelInfo(level).info}
                   </div>
                   <button
                     onClick={startGame}
-                    className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white font-bold py-3 px-8 rounded-full hover:from-blue-600 hover:to-pink-600 transition-all text-lg"
+                    disabled={isStarting}
+                    className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white font-bold py-3 px-8 rounded-full hover:from-blue-600 hover:to-pink-600 transition-all text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Start Game
+                    {isStarting ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Starting...
+                      </div>
+                    ) : (
+                      'Start Game'
+                    )}
                   </button>
                 </div>
               </div>
