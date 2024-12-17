@@ -7,7 +7,6 @@ import WalletButton from './WalletButton';
 import { LeaderboardEntry, FoodParticle, SnakeSegment, Food, Direction } from '../types/game';
 import SnakeGameABI from '../web3/abi/SnakeGame.json';
 import ULOTokenABI from '../web3/abi/ULOToken.json';
-import toast from 'react-hot-toast';
 
 export default function Game() {
   const { address, isConnected } = useAccount();
@@ -25,6 +24,7 @@ export default function Game() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [leaderboardSize, setLeaderboardSize] = useState(10);
 
   // Game constants
   const CANVAS_SIZE = 600;
@@ -173,7 +173,6 @@ export default function Game() {
     try {
       setIsMinting(true);
       
-      // Get wallet client
       const walletClient = await getWalletClient();
       if (!walletClient) {
         throw new Error('Wallet client not initialized');
@@ -188,22 +187,22 @@ export default function Game() {
       });
 
       const hash = await walletClient.writeContract(request);
-      
-      // Wait for transaction and update UI
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
       if (receipt.status === 'success') {
-        toast.success('Score submitted and tokens minted successfully!');
+        alert(`🎉 Score submitted successfully!\n\n🎮 Game Score: ${score}\n🪙 ULO Tokens Earned: ${score}\n\nTransaction Hash: ${hash}`);
+        
         // Refresh leaderboard after successful minting
         await fetchLeaderboard();
         // Return to main menu
-        backToMenu();
+        setGameOver(false);
+        setGameStarted(false);
       } else {
-        toast.error('Transaction failed');
+        alert('Transaction failed');
       }
     } catch (error: any) {
       console.error('Error submitting score:', error);
-      toast.error(error?.message || 'Failed to submit score');
+      alert(error?.message || 'Failed to submit score');
     } finally {
       setIsMinting(false);
     }
@@ -215,15 +214,13 @@ export default function Game() {
   };
 
   const fetchLeaderboard = async () => {
-    if (!publicClient) return;
-    
     try {
       setIsLoadingLeaderboard(true);
       const data = (await publicClient.readContract({
         address: SNAKE_GAME_ADDRESS,
         abi: SnakeGameABI.abi,
         functionName: 'getRecentScores',
-        args: [level, BigInt(10)], // Convert to BigInt without literal
+        args: [level, BigInt(leaderboardSize)],
       })) as LeaderboardEntry[];
 
       // Format and sort the leaderboard data
@@ -233,12 +230,12 @@ export default function Game() {
           score: Number(entry.score),
           timestamp: Number(entry.timestamp),
         }))
-        .sort((a, b) => b.score - a.score); // Sort by highest score first
+        .sort((a, b) => b.score - a.score);
 
       setLeaderboard(formattedData);
     } catch (error: any) {
       console.error('Error fetching leaderboard:', error);
-      toast.error(error?.message || 'Failed to fetch leaderboard');
+      alert(error?.message || 'Failed to fetch leaderboard');
     } finally {
       setIsLoadingLeaderboard(false);
     }
@@ -433,7 +430,7 @@ export default function Game() {
       {gameOver && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-gray-800 p-8 rounded-lg shadow-xl max-w-md w-full mx-4 border border-gray-700">
-            <h2 className="text-3xl font-bold text-red-500 mb-4">Game Over!</h2>
+            <h2 className="text-3xl font-bold mb-4">Game Over!</h2>
             <div className="space-y-4">
               <div>
                 <p className="text-2xl mb-2">Score: <span className="text-green-400">{score}</span></p>
@@ -595,6 +592,24 @@ export default function Game() {
                 </div>
               </div>
             )}
+            <div className="mt-8">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Leaderboard</h2>
+                <select
+                  value={leaderboardSize}
+                  onChange={(e) => {
+                    setLeaderboardSize(Number(e.target.value));
+                    fetchLeaderboard();
+                  }}
+                  className="bg-gray-700 text-white px-3 py-1 rounded-lg border border-gray-600 text-sm"
+                >
+                  <option value={10}>Top 10</option>
+                  <option value={25}>Top 25</option>
+                  <option value={50}>Top 50</option>
+                  <option value={100}>Top 100</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
       </div>
