@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   title: "Web3 Snake Game",
   description: "Experience the classic Snake game reimagined for Web3. Challenge yourself across 5 difficulty levels and compete for the highest scores on the blockchain-powered leaderboard.",
   keywords: ["Web3", "Snake Game", "Blockchain Game", "NFT Game", "Play to Earn", "Crypto Gaming"],
-  authors: [{ name: "Your Name" }],
+  authors: [{ name: "Muhammad Ihsan" }],
   openGraph: {
     title: "Web3 Snake Game",
     description: "Play the classic Snake game with a Web3 twist! Compete globally and top the leaderboards.",

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { LeaderboardEntry, FoodParticle, SnakeSegment, Food, Direction } from '../types/game';
-import { CANVAS_SIZE, GRID_SIZE, CELL_SIZE, generateFood, moveSnake, checkCollision } from '../lib/game';
 
 export default function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -14,7 +13,6 @@ export default function Game() {
   const [gameStarted, setGameStarted] = useState(false);
   const [level, setLevel] = useState(1);
   const [playerName, setPlayerName] = useState('');
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [particles, setParticles] = useState<FoodParticle[]>([]);
 
   // Separate leaderboards for each level
@@ -113,31 +111,27 @@ export default function Game() {
   // Handle keyboard controls
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (!gameStarted) return;
-      
+      if (!gameStarted || gameOver) return;
+
       switch (e.key.toLowerCase()) {
-        case 'arrowup':
         case 'w':
           if (direction !== 'DOWN') setDirection('UP');
           break;
-        case 'arrowdown':
         case 's':
           if (direction !== 'UP') setDirection('DOWN');
           break;
-        case 'arrowleft':
         case 'a':
           if (direction !== 'RIGHT') setDirection('LEFT');
           break;
-        case 'arrowright':
         case 'd':
           if (direction !== 'LEFT') setDirection('RIGHT');
           break;
       }
     };
 
-    document.addEventListener('keydown', handleKeyPress);
-    return () => document.removeEventListener('keydown', handleKeyPress);
-  }, [direction, gameStarted]);
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [gameStarted, gameOver, direction]);
 
   const gameLoop = () => {
     if (!canvasRef.current || gameOver) return;
@@ -289,6 +283,40 @@ export default function Game() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-start p-8 bg-gradient-to-b from-black to-gray-900 text-white">
+      {/* Game Over Screen */}
+      {gameOver && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-gray-800/90 p-8 rounded-lg text-center max-w-md w-full mx-4 border border-gray-700 shadow-xl">
+            <h2 className="text-4xl font-bold text-red-500 mb-4">Game Over!</h2>
+            <p className="text-2xl mb-2">Final Score: {score}</p>
+            <p className="text-xl mb-6">Level: {level} - {getLevelInfo(level).name}</p>
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={() => {
+                  setGameOver(false);
+                  startGame();
+                }}
+                className="bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold py-3 px-6 rounded-full hover:from-blue-600 hover:to-purple-600 transition-all"
+              >
+                Play Again
+              </button>
+              <button
+                onClick={() => {
+                  setGameOver(false);
+                  setGameStarted(false);
+                  setScore(0);
+                  setSnake([{ x: 10, y: 10 }]);
+                  setDirection('RIGHT');
+                }}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 px-6 rounded-full hover:from-purple-600 hover:to-pink-600 transition-all"
+              >
+                Back to Menu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="w-full max-w-7xl">
         <h1 className="text-6xl font-bold mb-8 text-center bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
           Web3 Snake Game
@@ -306,27 +334,58 @@ export default function Game() {
                 />
               </div>
             </div>
-            
-            {/* Game Info */}
-            <div className="flex gap-6 items-center bg-gray-800/50 p-4 rounded-lg backdrop-blur-sm">
-              <div className="text-2xl font-bold">
-                <span className="text-blue-400">Level: </span>
-                <span>{level}</span>
+
+            {/* Leaderboard Section */}
+            <div className="w-full bg-gray-800/50 p-6 rounded-lg backdrop-blur-sm">
+              <h2 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+                Level {level} Leaderboard
+              </h2>
+              <div className="space-y-3">
+                {(leaderboards[level] || []).map((entry, index) => (
+                  <div
+                    key={index}
+                    className="flex justify-between items-center bg-gray-700/50 p-4 rounded-lg border border-gray-600"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg font-bold text-blue-400">#{index + 1}</span>
+                      <span className="font-bold">{entry.name}</span>
+                    </div>
+                    <span className="text-green-400 font-bold">{entry.score} pts</span>
+                  </div>
+                ))}
+                {(leaderboards[level] || []).length === 0 && (
+                  <div className="text-center text-gray-400 py-4">
+                    No scores yet for this level
+                  </div>
+                )}
               </div>
-              <div className="text-2xl font-bold">
-                <span className="text-green-400">Score: </span>
-                <span>{score}</span>
+            </div>
+          </div>
+
+          {/* Right Column: Game Controls & Level Selection */}
+          <div className="space-y-4">
+            {/* Game Info */}
+            <div className="bg-gray-800/50 p-4 rounded-lg backdrop-blur-sm">
+              <div className="flex gap-6 items-center justify-center">
+                <div className="text-2xl font-bold">
+                  <span className="text-blue-400">Level: </span>
+                  <span>{level}</span>
+                </div>
+                <div className="text-2xl font-bold">
+                  <span className="text-green-400">Score: </span>
+                  <span>{score}</span>
+                </div>
               </div>
             </div>
 
             {/* Controls Info */}
             <div className="bg-gray-800/50 p-4 rounded-lg backdrop-blur-sm text-center">
-              <p>Use <span className="text-yellow-400">Arrow Keys</span> or <span className="text-yellow-400">WASD</span> to control the snake</p>
+              <p>Use <span className="text-yellow-400">WASD</span> keys to control the snake</p>
             </div>
 
             {/* Level Selection */}
             {!gameStarted && (
-              <div className="w-full max-w-md bg-gray-800/50 p-6 rounded-lg backdrop-blur-sm">
+              <div className="bg-gray-800/50 p-6 rounded-lg backdrop-blur-sm">
                 <h3 className="text-xl font-bold mb-4 text-center">Level Selection</h3>
                 <div className="flex flex-col gap-4">
                   <input
@@ -352,79 +411,16 @@ export default function Game() {
                     <p><span className="text-purple-400">Speed:</span> {getLevelInfo(level).speed}</p>
                     <p><span className="text-pink-400">Points Multiplier:</span> {getLevelInfo(level).points}</p>
                   </div>
+                  <button
+                    onClick={startGame}
+                    disabled={!playerName}
+                    className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white font-bold py-3 px-8 rounded-full disabled:opacity-50 hover:from-blue-600 hover:to-pink-600 transition-all text-lg"
+                  >
+                    Start Game
+                  </button>
                 </div>
               </div>
             )}
-            
-            {/* Game Over Screen */}
-            {gameOver && (
-              <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-10">
-                <div className="bg-gray-800 p-8 rounded-lg text-center">
-                  <h2 className="text-4xl font-bold text-red-500 mb-4">Game Over!</h2>
-                  <p className="text-2xl mb-2">Final Score: {score}</p>
-                  <p className="text-xl mb-6">Level: {level} - {getLevelInfo(level).name}</p>
-                  <div className="flex gap-4 justify-center">
-                    <button
-                      onClick={() => {
-                        setGameOver(false);
-                        startGame();
-                      }}
-                      className="bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold py-3 px-6 rounded-full hover:from-blue-600 hover:to-purple-600 transition-all"
-                    >
-                      Play Again
-                    </button>
-                    <button
-                      onClick={() => {
-                        setGameOver(false);
-                        setGameStarted(false);
-                        setScore(0);
-                        setSnake([{ x: 10, y: 10 }]);
-                        setDirection('RIGHT');
-                      }}
-                      className="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 px-6 rounded-full hover:from-purple-600 hover:to-pink-600 transition-all"
-                    >
-                      Back to Menu
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {!gameOver && !gameStarted && (
-              <button
-                onClick={startGame}
-                disabled={!playerName}
-                className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white font-bold py-3 px-8 rounded-full disabled:opacity-50 hover:from-blue-600 hover:to-pink-600 transition-all text-lg"
-              >
-                Start Game
-              </button>
-            )}
-          </div>
-
-          {/* Leaderboard Section */}
-          <div className="bg-gray-800/50 p-6 rounded-lg backdrop-blur-sm">
-            <h2 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-              Level {level} Leaderboard
-            </h2>
-            <div className="space-y-3">
-              {(leaderboards[level] || []).map((entry, index) => (
-                <div
-                  key={index}
-                  className="flex justify-between items-center bg-gray-700/50 p-4 rounded-lg border border-gray-600"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg font-bold text-blue-400">#{index + 1}</span>
-                    <span className="font-bold">{entry.name}</span>
-                  </div>
-                  <span className="text-green-400 font-bold">{entry.score} pts</span>
-                </div>
-              ))}
-              {(leaderboards[level] || []).length === 0 && (
-                <div className="text-center text-gray-400 py-4">
-                  No scores yet for this level
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </div>
