@@ -94,9 +94,6 @@ export default function Game() {
     }
     
     try {
-      // First check and reset player status if needed
-      await checkAndResetPlayerStatus();
-
       const walletClient = await getWalletClient();
       if (!walletClient) {
         throw new Error('Wallet client not initialized');
@@ -113,7 +110,7 @@ export default function Game() {
       const hash = await walletClient.writeContract(request);
       console.log('Game started, transaction hash:', hash);
       
-      // Initialize game state after contract call succeeds
+      // Initialize game state
       setSnake([{ x: 10, y: 10 }]);
       setFood({ x: 5, y: 5 });
       setDirection('RIGHT');
@@ -126,142 +123,15 @@ export default function Game() {
     }
   };
 
-  const checkAndResetPlayerStatus = async () => {
-    if (!isConnected || !address) return;
-    
-    try {
-      // Check if player is still marked as playing
-      const playerData = await publicClient.readContract({
-        address: SNAKE_GAME_ADDRESS,
-        abi: SnakeGameABI.abi,
-        functionName: 'players',
-        args: [address],
-      }) as { isPlaying: boolean };
-
-      if (playerData.isPlaying) {
-        // Force end the game with 0 score
-        const walletClient = await getWalletClient();
-        if (!walletClient) {
-          throw new Error('Wallet client not initialized');
-        }
-
-        const { request } = await publicClient.simulateContract({
-          address: SNAKE_GAME_ADDRESS,
-          abi: SnakeGameABI.abi,
-          functionName: 'endGame',
-          args: [playerName || '', 0, Number(level)],
-          account: address,
-        });
-        
-        await walletClient.writeContract(request);
-        console.log('Forced game end due to stale state');
-      }
-    } catch (error: any) {
-      console.error('Error checking player status:', error);
-    }
+  const handleGameOver = () => {
+    setGameOver(true);
   };
 
-  const handleGameOver = async () => {
-    if (!isConnected || !address) return;
-    
-    try {
-      // First, end the game in smart contract to update isPlaying state
-      const walletClient = await getWalletClient();
-      if (!walletClient) {
-        throw new Error('Wallet client not initialized');
-      }
-
-      const { request } = await publicClient.simulateContract({
-        address: SNAKE_GAME_ADDRESS,
-        abi: SnakeGameABI.abi,
-        functionName: 'endGame',
-        args: [playerName || '', Number(score), Number(level)],
-        account: address,
-      });
-      
-      const hash = await walletClient.writeContract(request);
-      console.log('Game ended, transaction hash:', hash);
-      
-      // Wait for transaction to be mined to ensure state is updated
-      await publicClient.waitForTransactionReceipt({ hash });
-      
-      // Then update UI state
-      setGameOver(true);
-      await fetchLeaderboard();
-    } catch (error: any) {
-      console.error('Error ending game:', error);
-      alert(`Failed to end game: ${error?.message || 'Unknown error'}`);
-      // Still set game over even if contract call fails
-      setGameOver(true);
-    }
-  };
-
-  const mintTokens = async () => {
+  const submitScoreAndMint = async () => {
     if (!isConnected || !address || isMinting) return;
     
     try {
       setIsMinting(true);
-      
-      // First check if player is still marked as playing
-      const playerData = await publicClient.readContract({
-        address: SNAKE_GAME_ADDRESS,
-        abi: SnakeGameABI.abi,
-        functionName: 'players',
-        args: [address],
-      }) as { isPlaying: boolean };
-
-      // If somehow still marked as playing, end the game first
-      if (playerData.isPlaying) {
-        const walletClient = await getWalletClient();
-        if (!walletClient) {
-          throw new Error('Wallet client not initialized');
-        }
-
-        const { request } = await publicClient.simulateContract({
-          address: SNAKE_GAME_ADDRESS,
-          abi: SnakeGameABI.abi,
-          functionName: 'endGame',
-          args: [playerName || '', Number(score), Number(level)],
-          account: address,
-        });
-        
-        const hash = await walletClient.writeContract(request);
-        console.log('Game ended before minting, transaction hash:', hash);
-        
-        // Wait for transaction to be mined
-        await publicClient.waitForTransactionReceipt({ hash });
-      }
-      
-      // Get ULO token contract
-      const uloContract = (await publicClient.readContract({
-        address: SNAKE_GAME_ADDRESS,
-        abi: SnakeGameABI.abi,
-        functionName: 'uloToken',
-      })) as `0x${string}`;
-      
-      // Check ULO token balance after minting
-      const balance = await publicClient.readContract({
-        address: uloContract,
-        abi: ULOTokenABI.abi,
-        functionName: 'balanceOf',
-        args: [address],
-      });
-      
-      console.log('ULO balance after minting:', balance);
-      
-      setIsMinting(false);
-      alert('Tokens minted successfully! Check your wallet for ULO tokens.');
-    } catch (error: any) {
-      console.error('Error minting tokens:', error);
-      setIsMinting(false);
-      alert(`Failed to mint tokens: ${error?.message || 'Unknown error'}`);
-    }
-  };
-
-  const submitScore = async () => {
-    if (!isConnected || !address) return;
-    
-    try {
       const walletClient = await getWalletClient();
       if (!walletClient) {
         throw new Error('Wallet client not initialized');
@@ -271,17 +141,29 @@ export default function Game() {
         address: SNAKE_GAME_ADDRESS,
         abi: SnakeGameABI.abi,
         functionName: 'submitScore',
-        args: [Number(level), Number(score), playerName || ''],
+        args: [playerName || '', Number(score), Number(level)],
         account: address,
       });
       
       const hash = await walletClient.writeContract(request);
-      console.log('Score submitted, transaction hash:', hash);
-      await fetchLeaderboard(); // Refresh leaderboard after submitting
+      console.log('Score submitted and tokens minted, transaction hash:', hash);
+      
+      // Wait for transaction and update leaderboard
+      await publicClient.waitForTransactionReceipt({ hash });
+      await fetchLeaderboard();
+      
+      setIsMinting(false);
+      alert('Score submitted and tokens minted successfully!');
     } catch (error: any) {
       console.error('Error submitting score:', error);
+      setIsMinting(false);
       alert(`Failed to submit score: ${error?.message || 'Unknown error'}`);
     }
+  };
+
+  const backToMenu = () => {
+    setGameStarted(false);
+    setGameOver(false);
   };
 
   const fetchLeaderboard = async () => {
@@ -493,42 +375,57 @@ export default function Game() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-start p-8 bg-gradient-to-b from-black to-gray-900 text-white">
-      {/* Game Over Screen */}
+      {/* Game Over Modal */}
       {gameOver && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-gray-800/90 p-8 rounded-lg text-center max-w-md w-full mx-4 border border-gray-700 shadow-xl">
-            <h2 className="text-4xl font-bold text-red-500 mb-4">Game Over!</h2>
-            <p className="text-2xl mb-2">Final Score: {score}</p>
-            <p className="text-xl mb-6">Level: {level} - {getLevelInfo(level).name}</p>
-            <div className="flex gap-4 justify-center">
-              <button
-                onClick={() => {
-                  setGameOver(false);
-                  startGame();
-                }}
-                className="bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold py-3 px-6 rounded-full hover:from-blue-600 hover:to-purple-600 transition-all"
-              >
-                Play Again
-              </button>
-              <button
-                onClick={() => {
-                  setGameOver(false);
-                  setGameStarted(false);
-                  setScore(0);
-                  setSnake([{ x: 10, y: 10 }]);
-                  setDirection('RIGHT');
-                }}
-                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 px-6 rounded-full hover:from-purple-600 hover:to-pink-600 transition-all"
-              >
-                Back to Menu
-              </button>
-              <button
-                onClick={mintTokens}
-                disabled={isMinting}
-                className="bg-gradient-to-r from-green-500 to-blue-500 text-white font-bold py-3 px-6 rounded-full hover:from-green-600 hover:to-blue-600 transition-all"
-              >
-                {isMinting ? 'Minting...' : 'Mint ULO Tokens'}
-              </button>
+          <div className="bg-gray-800 p-8 rounded-lg shadow-xl max-w-md w-full mx-4 border border-gray-700">
+            <h2 className="text-3xl font-bold text-red-500 mb-4">Game Over!</h2>
+            <div className="space-y-4">
+              <div>
+                <p className="text-2xl mb-2">Score: <span className="text-green-400">{score}</span></p>
+                <p className="text-xl mb-4">Level {level} - {getLevelInfo(level).name}</p>
+              </div>
+              
+              {/* Player Name Input */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Enter your name to submit score
+                </label>
+                <input
+                  type="text"
+                  placeholder="Your name (optional)"
+                  value={playerName}
+                  onChange={(e) => setPlayerName(e.target.value)}
+                  className="w-full p-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+              
+              <div className="space-y-3">
+                <button
+                  onClick={submitScoreAndMint}
+                  disabled={isMinting}
+                  className="w-full bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white font-bold py-3 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                >
+                  {isMinting ? (
+                    <span className="flex items-center justify-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Submitting...
+                    </span>
+                  ) : (
+                    'Submit Score & Get Tokens'
+                  )}
+                </button>
+                
+                <button
+                  onClick={backToMenu}
+                  className="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg transition-all duration-200"
+                >
+                  Back to Menu
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -613,12 +510,12 @@ export default function Game() {
                     placeholder="Enter your name"
                     value={playerName}
                     onChange={(e) => setPlayerName(e.target.value)}
-                    className="bg-gray-700 text-white px-4 py-3 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                    className="bg-gray-700 text-white px-4 py-3 rounded-lg border border-gray-600 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
                   <select
                     value={level}
                     onChange={(e) => setLevel(Number(e.target.value))}
-                    className="bg-gray-700 text-white px-4 py-3 rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none"
+                    className="bg-gray-700 text-white px-4 py-3 rounded-lg border border-gray-600 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   >
                     {Array.from({ length: MAX_LEVEL }, (_, i) => (
                       <option key={i + 1} value={i + 1}>
