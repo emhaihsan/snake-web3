@@ -3,7 +3,7 @@ import { createConfig, http } from 'wagmi';
 import { getDefaultWallets } from '@rainbow-me/rainbowkit';
 
 // Define Lisk Sepolia chain
-const liskSepolia = {
+export const liskSepolia = {
     id: 4202,
     name: 'Lisk Sepolia',
     nativeCurrency: { name: 'LSK', symbol: 'LSK', decimals: 18 },

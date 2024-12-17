@@ -1,11 +1,15 @@
 'use client';
-// Di bagian atas file, tambahkan import
-import WalletButton from './WalletButton';
 
 import { useEffect, useRef, useState } from 'react';
+import { useAccount } from 'wagmi';
+import { publicClient, getWalletClient, SNAKE_GAME_ADDRESS } from '../web3/config';
+import WalletButton from './WalletButton';
 import { LeaderboardEntry, FoodParticle, SnakeSegment, Food, Direction } from '../types/game';
+import SnakeGameABI from '../web3/abi/SnakeGame.json';
+import ULOTokenABI from '../web3/abi/ULOToken.json';
 
 export default function Game() {
+  const { address, isConnected } = useAccount();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
@@ -16,15 +20,8 @@ export default function Game() {
   const [level, setLevel] = useState(1);
   const [playerName, setPlayerName] = useState('');
   const [particles, setParticles] = useState<FoodParticle[]>([]);
-
-  // Separate leaderboards for each level
-  const [leaderboards, setLeaderboards] = useState<{ [key: number]: LeaderboardEntry[] }>({
-    1: [],
-    2: [],
-    3: [],
-    4: [],
-    5: []
-  });
+  const [isMinting, setIsMinting] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
   // Game constants
   const CANVAS_SIZE = 600;
@@ -49,24 +46,28 @@ export default function Game() {
     return BASE_SPEED - (level - 1) * 25; // Adjusted speed difference
   };
 
+  // Get random color for particles
+  const getRandomColor = () => {
+    const colors = ['#ff0000', '#ff3333', '#ff6666', '#ff9999'];
+    return colors[Math.floor(Math.random() * colors.length)];
+  };
+
   // Create food particles
   const createFoodParticles = (x: number, y: number) => {
-    const particleCount = 8;
-    const newParticles: FoodParticle[] = [];
-    const colors = ['#ff0000', '#ff3333', '#ff6666', '#ff9999'];
-
-    for (let i = 0; i < particleCount; i++) {
-      const angle = (Math.PI * 2 * i) / particleCount;
-      newParticles.push({
+    const particles: FoodParticle[] = [];
+    for (let i = 0; i < 8; i++) {
+      const angle = (Math.PI * 2 * i) / 8;
+      particles.push({
         x: x * GRID_SIZE + GRID_SIZE / 2,
         y: y * GRID_SIZE + GRID_SIZE / 2,
-        dx: Math.cos(angle) * 3,
-        dy: Math.sin(angle) * 3,
-        life: 1,
-        color: colors[Math.floor(Math.random() * colors.length)]
+        dx: Math.cos(angle) * 2,
+        dy: Math.sin(angle) * 2,
+        alpha: 1,
+        color: getRandomColor(),
+        life: 1
       });
     }
-    setParticles(newParticles);
+    setParticles(particles);
   };
 
   // Update and draw particles
@@ -84,6 +85,238 @@ export default function Game() {
         .filter(p => p.life > 0)
     );
   };
+
+  // Start game with smart contract
+  const startGame = async () => {
+    if (!isConnected || !address) {
+      alert('Please connect your wallet first');
+      return;
+    }
+    
+    try {
+      // First check and reset player status if needed
+      await checkAndResetPlayerStatus();
+
+      const walletClient = await getWalletClient();
+      if (!walletClient) {
+        throw new Error('Wallet client not initialized');
+      }
+
+      const { request } = await publicClient.simulateContract({
+        address: SNAKE_GAME_ADDRESS,
+        abi: SnakeGameABI.abi,
+        functionName: 'startGame',
+        args: [Number(level)],
+        account: address,
+      });
+      
+      const hash = await walletClient.writeContract(request);
+      console.log('Game started, transaction hash:', hash);
+      
+      // Initialize game state after contract call succeeds
+      setSnake([{ x: 10, y: 10 }]);
+      setFood({ x: 5, y: 5 });
+      setDirection('RIGHT');
+      setScore(0);
+      setGameOver(false);
+      setGameStarted(true);
+    } catch (error: any) {
+      console.error('Error starting game:', error);
+      alert(`Failed to start game: ${error?.message || 'Unknown error'}`);
+    }
+  };
+
+  const checkAndResetPlayerStatus = async () => {
+    if (!isConnected || !address) return;
+    
+    try {
+      // Check if player is still marked as playing
+      const playerData = await publicClient.readContract({
+        address: SNAKE_GAME_ADDRESS,
+        abi: SnakeGameABI.abi,
+        functionName: 'players',
+        args: [address],
+      }) as { isPlaying: boolean };
+
+      if (playerData.isPlaying) {
+        // Force end the game with 0 score
+        const walletClient = await getWalletClient();
+        if (!walletClient) {
+          throw new Error('Wallet client not initialized');
+        }
+
+        const { request } = await publicClient.simulateContract({
+          address: SNAKE_GAME_ADDRESS,
+          abi: SnakeGameABI.abi,
+          functionName: 'endGame',
+          args: [playerName || '', 0, Number(level)],
+          account: address,
+        });
+        
+        await walletClient.writeContract(request);
+        console.log('Forced game end due to stale state');
+      }
+    } catch (error: any) {
+      console.error('Error checking player status:', error);
+    }
+  };
+
+  const handleGameOver = async () => {
+    if (!isConnected || !address) return;
+    
+    try {
+      // First, end the game in smart contract to update isPlaying state
+      const walletClient = await getWalletClient();
+      if (!walletClient) {
+        throw new Error('Wallet client not initialized');
+      }
+
+      const { request } = await publicClient.simulateContract({
+        address: SNAKE_GAME_ADDRESS,
+        abi: SnakeGameABI.abi,
+        functionName: 'endGame',
+        args: [playerName || '', Number(score), Number(level)],
+        account: address,
+      });
+      
+      const hash = await walletClient.writeContract(request);
+      console.log('Game ended, transaction hash:', hash);
+      
+      // Wait for transaction to be mined to ensure state is updated
+      await publicClient.waitForTransactionReceipt({ hash });
+      
+      // Then update UI state
+      setGameOver(true);
+      await fetchLeaderboard();
+    } catch (error: any) {
+      console.error('Error ending game:', error);
+      alert(`Failed to end game: ${error?.message || 'Unknown error'}`);
+      // Still set game over even if contract call fails
+      setGameOver(true);
+    }
+  };
+
+  const mintTokens = async () => {
+    if (!isConnected || !address || isMinting) return;
+    
+    try {
+      setIsMinting(true);
+      
+      // First check if player is still marked as playing
+      const playerData = await publicClient.readContract({
+        address: SNAKE_GAME_ADDRESS,
+        abi: SnakeGameABI.abi,
+        functionName: 'players',
+        args: [address],
+      }) as { isPlaying: boolean };
+
+      // If somehow still marked as playing, end the game first
+      if (playerData.isPlaying) {
+        const walletClient = await getWalletClient();
+        if (!walletClient) {
+          throw new Error('Wallet client not initialized');
+        }
+
+        const { request } = await publicClient.simulateContract({
+          address: SNAKE_GAME_ADDRESS,
+          abi: SnakeGameABI.abi,
+          functionName: 'endGame',
+          args: [playerName || '', Number(score), Number(level)],
+          account: address,
+        });
+        
+        const hash = await walletClient.writeContract(request);
+        console.log('Game ended before minting, transaction hash:', hash);
+        
+        // Wait for transaction to be mined
+        await publicClient.waitForTransactionReceipt({ hash });
+      }
+      
+      // Get ULO token contract
+      const uloContract = (await publicClient.readContract({
+        address: SNAKE_GAME_ADDRESS,
+        abi: SnakeGameABI.abi,
+        functionName: 'uloToken',
+      })) as `0x${string}`;
+      
+      // Check ULO token balance after minting
+      const balance = await publicClient.readContract({
+        address: uloContract,
+        abi: ULOTokenABI.abi,
+        functionName: 'balanceOf',
+        args: [address],
+      });
+      
+      console.log('ULO balance after minting:', balance);
+      
+      setIsMinting(false);
+      alert('Tokens minted successfully! Check your wallet for ULO tokens.');
+    } catch (error: any) {
+      console.error('Error minting tokens:', error);
+      setIsMinting(false);
+      alert(`Failed to mint tokens: ${error?.message || 'Unknown error'}`);
+    }
+  };
+
+  const submitScore = async () => {
+    if (!isConnected || !address) return;
+    
+    try {
+      const walletClient = await getWalletClient();
+      if (!walletClient) {
+        throw new Error('Wallet client not initialized');
+      }
+
+      const { request } = await publicClient.simulateContract({
+        address: SNAKE_GAME_ADDRESS,
+        abi: SnakeGameABI.abi,
+        functionName: 'submitScore',
+        args: [Number(level), Number(score), playerName || ''],
+        account: address,
+      });
+      
+      const hash = await walletClient.writeContract(request);
+      console.log('Score submitted, transaction hash:', hash);
+      await fetchLeaderboard(); // Refresh leaderboard after submitting
+    } catch (error: any) {
+      console.error('Error submitting score:', error);
+      alert(`Failed to submit score: ${error?.message || 'Unknown error'}`);
+    }
+  };
+
+  const fetchLeaderboard = async () => {
+    try {
+      const data = (await publicClient.readContract({
+        address: SNAKE_GAME_ADDRESS,
+        abi: SnakeGameABI.abi,
+        functionName: 'getRecentScores',
+        args: [Number(level), Number(10)],
+      })) as Array<{
+        player: string;
+        playerName: string;
+        score: bigint;
+        level: number;
+        timestamp: bigint;
+      }>;
+      
+      setLeaderboard(data.map((score) => ({
+        playerAddress: score.player, // Map 'player' to 'playerAddress'
+        playerName: score.playerName,
+        score: Number(score.score),
+        level: Number(score.level),
+        timestamp: Number(score.timestamp)
+      })));
+    } catch (error: any) {
+      console.error('Error fetching leaderboard:', error);
+      alert(`Failed to fetch leaderboard: ${error?.message || 'Unknown error'}`);
+    }
+  };
+
+  useEffect(() => {
+    if (isConnected) {
+      fetchLeaderboard();
+    }
+  }, [level, isConnected]);
 
   // Initialize game
   useEffect(() => {
@@ -250,37 +483,12 @@ export default function Game() {
     // Draw particles
     particles.forEach(particle => {
       ctx.fillStyle = particle.color;
-      ctx.globalAlpha = particle.life;
+      ctx.globalAlpha = particle.alpha;
       ctx.beginPath();
       ctx.arc(particle.x, particle.y, 3, 0, Math.PI * 2);
       ctx.fill();
     });
     ctx.globalAlpha = 1;
-  };
-
-  const handleGameOver = () => {
-    setGameOver(true);
-    if (playerName && score > 0) {
-      const currentLeaderboard = [...(leaderboards[level] || [])];
-      const newLeaderboard = [...currentLeaderboard, { name: playerName, score, level }]
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 10);
-      
-      setLeaderboards({
-        ...leaderboards,
-        [level]: newLeaderboard
-      });
-    }
-  };
-
-  const startGame = () => {
-    if (!playerName) return;
-    setSnake([{ x: 10, y: 10 }]);
-    setFood({ x: 5, y: 5 });
-    setDirection('RIGHT');
-    setScore(0);
-    setGameOver(false);
-    setGameStarted(true);
   };
 
   return (
@@ -314,6 +522,13 @@ export default function Game() {
               >
                 Back to Menu
               </button>
+              <button
+                onClick={mintTokens}
+                disabled={isMinting}
+                className="bg-gradient-to-r from-green-500 to-blue-500 text-white font-bold py-3 px-6 rounded-full hover:from-green-600 hover:to-blue-600 transition-all"
+              >
+                {isMinting ? 'Minting...' : 'Mint ULO Tokens'}
+              </button>
             </div>
           </div>
         </div>
@@ -346,19 +561,19 @@ export default function Game() {
                 Level {level} Leaderboard
               </h2>
               <div className="space-y-3">
-                {(leaderboards[level] || []).map((entry, index) => (
+                {leaderboard.map((entry, index) => (
                   <div
                     key={index}
                     className="flex justify-between items-center bg-gray-700/50 p-4 rounded-lg border border-gray-600"
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-lg font-bold text-blue-400">#{index + 1}</span>
-                      <span className="font-bold">{entry.name}</span>
+                      <span className="font-bold">{entry.playerName}</span>
                     </div>
                     <span className="text-green-400 font-bold">{entry.score} pts</span>
                   </div>
                 ))}
-                {(leaderboards[level] || []).length === 0 && (
+                {leaderboard.length === 0 && (
                   <div className="text-center text-gray-400 py-4">
                     No scores yet for this level
                   </div>

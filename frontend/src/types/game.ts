@@ -1,7 +1,9 @@
 export type LeaderboardEntry = {
-    name: string;
+    playerAddress: string;
+    playerName: string;
     score: number;
     level: number;
+    timestamp: number;
 };
 
 export type FoodParticle = {
@@ -9,8 +11,9 @@ export type FoodParticle = {
     y: number;
     dx: number;
     dy: number;
-    life: number;
+    alpha: number;
     color: string;
+    life: number;
 };
 
 export type SnakeSegment = {
