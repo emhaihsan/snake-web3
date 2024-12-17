@@ -189,11 +189,13 @@ export default function Game() {
       })) as LeaderboardEntry[];
 
       // Format and sort the leaderboard data
-      const formattedData = data.map((entry) => ({
-        ...entry,
-        score: Number(entry.score),
-        timestamp: Number(entry.timestamp),
-      }));
+      const formattedData = data
+        .map((entry) => ({
+          ...entry,
+          score: Number(entry.score),
+          timestamp: Number(entry.timestamp),
+        }))
+        .sort((a, b) => b.score - a.score); // Sort by highest score first
 
       setLeaderboard(formattedData);
     } catch (error: any) {
@@ -521,13 +523,6 @@ export default function Game() {
               <div className="bg-gray-800/50 p-6 rounded-lg backdrop-blur-sm">
                 <h3 className="text-xl font-bold mb-4 text-center">Level Selection</h3>
                 <div className="flex flex-col gap-4">
-                  <input
-                    type="text"
-                    placeholder="Enter your name"
-                    value={playerName}
-                    onChange={(e) => setPlayerName(e.target.value)}
-                    className="bg-gray-700 text-white px-4 py-3 rounded-lg border border-gray-600 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
                   <select
                     value={level}
                     onChange={(e) => setLevel(Number(e.target.value))}
@@ -539,15 +534,12 @@ export default function Game() {
                       </option>
                     ))}
                   </select>
-                  <div className="bg-gray-700 p-4 rounded-lg">
-                    <p><span className="text-blue-400">Difficulty:</span> {getLevelInfo(level).name}</p>
-                    <p><span className="text-purple-400">Speed:</span> {getLevelInfo(level).speed}</p>
-                    <p><span className="text-pink-400">Points Multiplier:</span> {getLevelInfo(level).points}</p>
+                  <div className="text-sm text-gray-400">
+                    {getLevelInfo(level).description}
                   </div>
                   <button
                     onClick={startGame}
-                    disabled={!playerName}
-                    className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white font-bold py-3 px-8 rounded-full disabled:opacity-50 hover:from-blue-600 hover:to-pink-600 transition-all text-lg"
+                    className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white font-bold py-3 px-8 rounded-full hover:from-blue-600 hover:to-pink-600 transition-all text-lg"
                   >
                     Start Game
                   </button>
