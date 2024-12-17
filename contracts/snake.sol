@@ -9,7 +9,6 @@ contract SnakeGame is Ownable {
 
     struct Player {
         bool isPlaying;
-        uint256 gameStartTime;
         uint256 lastScore;
         uint256 highestScore;
         uint256 gamesPlayed;
@@ -31,8 +30,6 @@ contract SnakeGame is Ownable {
 
     // Constants
     uint8 public constant MAX_LEVELS = 5;
-    uint256 public constant GAME_TIMEOUT = 10 minutes;
-    uint256 public constant MIN_PLAY_COST = 0.001 ether;
 
     // Events
     event GameStarted(address indexed player, uint8 level, uint256 timestamp);
@@ -54,17 +51,12 @@ contract SnakeGame is Ownable {
         uloToken = ULOToken(_uloTokenAddress);
     }
 
-    function startGame(uint8 level) external payable {
+    function startGame(uint8 level) external {
         require(level >= 1 && level <= MAX_LEVELS, "Invalid level");
-        require(
-            msg.value >= MIN_PLAY_COST,
-            "Insufficient payment to start game"
-        );
         require(!players[msg.sender].isPlaying, "Player already in game");
 
         players[msg.sender] = Player({
             isPlaying: true,
-            gameStartTime: block.timestamp,
             lastScore: 0,
             highestScore: players[msg.sender].highestScore,
             gamesPlayed: players[msg.sender].gamesPlayed + 1
@@ -79,10 +71,6 @@ contract SnakeGame is Ownable {
         uint8 level
     ) external {
         require(players[msg.sender].isPlaying, "No active game found");
-        require(
-            block.timestamp - players[msg.sender].gameStartTime <= GAME_TIMEOUT,
-            "Game timeout exceeded"
-        );
 
         Player storage player = players[msg.sender];
         player.isPlaying = false;
@@ -204,38 +192,10 @@ contract SnakeGame is Ownable {
             ? end
             : leaderboards[level].length - 1;
         uint256 resultLength = endIndex - start + 1;
-
         Score[] memory result = new Score[](resultLength);
+
         for (uint256 i = 0; i < resultLength; i++) {
             result[i] = leaderboards[level][start + i];
-        }
-
-        return result;
-    }
-
-    // 5. Ambil score player tertentu
-    function getPlayerScores(
-        uint8 level,
-        address playerAddress
-    ) external view returns (Score[] memory) {
-        require(level >= 1 && level <= MAX_LEVELS, "Invalid level");
-
-        // Hitung jumlah score player
-        uint256 count = 0;
-        for (uint i = 0; i < leaderboards[level].length; i++) {
-            if (leaderboards[level][i].player == playerAddress) {
-                count++;
-            }
-        }
-
-        Score[] memory result = new Score[](count);
-        uint256 resultIndex = 0;
-
-        for (uint i = 0; i < leaderboards[level].length; i++) {
-            if (leaderboards[level][i].player == playerAddress) {
-                result[resultIndex] = leaderboards[level][i];
-                resultIndex++;
-            }
         }
 
         return result;
