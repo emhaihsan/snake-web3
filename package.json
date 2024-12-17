@@ -1,7 +1,24 @@
 {
   "name": "hardhat-project",
   "devDependencies": {
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.12",
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "hardhat": "^2.22.17"
-  }
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.1.0",
+    "openzeppelin": "^1.0.0"
+  },
+  "version": "1.0.0",
+  "description": "Berikut adalah perbaikan struktur README.md agar lebih terorganisasi dan mudah dibaca:",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }
