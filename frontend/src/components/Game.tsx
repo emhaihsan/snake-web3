@@ -2,11 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useAccount } from 'wagmi';
-import { publicClient, getWalletClient, SNAKE_GAME_ADDRESS } from '../web3/config';
+import { publicClient, getWalletClient, SNAKE_GAME_ADDRESS} from '../web3/config';
 import WalletButton from './WalletButton';
 import { LeaderboardEntry, FoodParticle, SnakeSegment, Food, Direction } from '../types/game';
 import SnakeGameABI from '../web3/abi/SnakeGame.json';
-import ULOTokenABI from '../web3/abi/ULOToken.json';
 
 export default function Game() {
   const { address, isConnected } = useAccount();
@@ -40,42 +39,48 @@ export default function Game() {
           name: 'Easy',
           speed: 'Slow',
           points: '1x',
-          info: 'Perfect for beginners. Snake moves slowly, giving you time to think.'
+          info: 'Perfect for beginners! Snake moves slowly giving you time to think. Each food gives 10 point and 10 ULO token.',
+          controls: 'Use arrow keys or WASD to control the snake.'
         };
       case 2:
         return {
           name: 'Medium',
           speed: 'Normal',
           points: '2x',
-          info: 'Balanced difficulty. Requires quick thinking and good reflexes.'
+          info: 'A balanced challenge! Snake moves faster and points are doubled. Each food gives 20 points and 20 ULO tokens.',
+          controls: 'Quick reflexes required. Watch out for your growing tail!'
         };
       case 3:
         return {
           name: 'Hard',
           speed: 'Fast',
           points: '3x',
-          info: 'For experienced players. Snake moves quickly, test your skills!'
+          info: 'For experienced players! Snake moves quickly and points are tripled. Each food gives 30 points and 30 ULO tokens.',
+          controls: 'Plan your moves ahead. Space is limited as you grow!'
         };
       case 4:
         return {
           name: 'Expert',
           speed: 'Very Fast',
           points: '4x',
-          info: 'The ultimate challenge. Only for snake masters!'
+          info: 'The ultimate challenge! Lightning-fast snake movement with 4x points. Each food gives 40 points and 40 ULO tokens.',
+          controls: 'Master-level precision needed. One wrong move and it\'s game over!'
         };
       case 5:
         return {
           name: 'Master',
           speed: 'Insane',
           points: '5x',
-          info: 'Insane speed and reflexes required. Are you up for the challenge?'
+          info: 'Only for the elite! Insane speed with maximum rewards. Each food gives 50 points and 50 ULO tokens.',
+          controls: 'Superhuman reflexes required. Can you handle the pressure?'
         };
       default:
         return {
           name: 'Easy',
           speed: 'Slow',
           points: '1x',
-          info: 'Perfect for beginners. Snake moves slowly.'
+          info: 'Perfect for beginners. Snake moves slowly.',
+          controls: 'Use arrow keys or WASD to control the snake.'
         };
     }
   };
@@ -430,55 +435,42 @@ export default function Game() {
       {gameOver && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-gray-800 p-8 rounded-lg shadow-xl max-w-md w-full mx-4 border border-gray-700">
-            <h2 className="text-3xl font-bold mb-4">Game Over!</h2>
+            <h2 className="text-3xl font-bold mb-4 text-center bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">Game Over!</h2>
             <div className="space-y-4">
-              <div>
+              <div className="text-center">
                 <p className="text-2xl mb-2">Score: <span className="text-green-400">{score}</span></p>
-                <p className="text-xl mb-4">Level {level} - {getLevelInfo(level).name}</p>
+                <p className="text-gray-400">Level: {getLevelInfo(level).name} ({getLevelInfo(level).points} multiplier)</p>
               </div>
-              
-              {/* Player Name Input */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Enter your name (optional)
-                </label>
+              <div className="bg-gray-700/50 p-4 rounded-lg">
+                <p className="text-sm text-gray-300 mb-2">Enter your name to be featured on the leaderboard! (optional)</p>
                 <input
                   type="text"
-                  placeholder="Your name"
+                  placeholder="Enter your name"
                   value={playerName}
                   onChange={(e) => setPlayerName(e.target.value)}
-                  className="w-full p-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  disabled={isMinting}
+                  className="w-full bg-gray-600 text-white px-4 py-2 rounded-lg border border-gray-500 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  maxLength={32}
                 />
               </div>
-              
-              <div className="space-y-3">
+              <div className="flex gap-3">
                 <button
                   onClick={submitScoreAndMint}
                   disabled={isMinting}
-                  className="w-full bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white font-bold py-3 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-2 px-4 rounded-lg hover:from-green-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
-                  {isMinting ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Submitting & Minting...
-                    </span>
-                  ) : (
-                    'Submit Score & Get Tokens'
-                  )}
+                  {isMinting ? 'Minting...' : 'Submit Score & Mint Tokens'}
                 </button>
-                
                 <button
                   onClick={backToMenu}
                   disabled={isMinting}
-                  className="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-lg transition-all duration-200 disabled:opacity-50"
+                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-all disabled:opacity-50"
                 >
-                  Back to Menu
+                  Return to Menu
                 </button>
               </div>
+              <p className="text-xs text-gray-400 text-center">
+                Submitting your score will mint {score} ULO tokens to your wallet!
+              </p>
             </div>
           </div>
         </div>
@@ -488,7 +480,7 @@ export default function Game() {
       <div className="flex justify-end mb-4">
     <WalletButton />
   </div>
-        <h1 className="text-6xl font-bold mb-8 text-center bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+        <h1 className="text-6xl font-bold mb-8 text-center bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
           Web3 Snake Game
         </h1>
         
@@ -506,26 +498,79 @@ export default function Game() {
             </div>
 
             {/* Leaderboard Section */}
-            <div className="w-full bg-gray-800/50 p-6 rounded-lg backdrop-blur-sm">
-              <h2 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-                Level {level} Leaderboard
-              </h2>
-              <div className="space-y-3">
-                {leaderboard.map((entry, index) => (
-                  <div
-                    key={index}
-                    className="flex justify-between items-center bg-gray-700/50 p-4 rounded-lg border border-gray-600"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg font-bold text-blue-400">#{index + 1}</span>
-                      <span className="font-bold">{entry.playerName}</span>
-                    </div>
-                    <span className="text-green-400 font-bold">{entry.score} pts</span>
+            <div className="mt-8" style={{ width: CANVAS_SIZE }}>
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold bg-gradient-to-r from-yellow-500 to-yellow-300 bg-clip-text text-transparent">
+                      🏆 Leaderboard
+                    </h2>
                   </div>
-                ))}
-                {leaderboard.length === 0 && (
-                  <div className="text-center text-gray-400 py-4">
-                    No scores yet for this level
+                  <div className="flex gap-2">
+                    {[10, 25, 50, 100].map((size) => (
+                      <button
+                        key={size}
+                        onClick={() => {
+                          setLeaderboardSize(size);
+                          fetchLeaderboard();
+                        }}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-all ${
+                          leaderboardSize === size
+                            ? 'bg-yellow-500 text-gray-900'
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                      >
+                        Top {size}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {isLoadingLeaderboard ? (
+                  <div className="flex justify-center py-8">
+                    <svg className="animate-spin h-8 w-8 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </div>
+                ) : leaderboard.length > 0 ? (
+                  <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                    {leaderboard.map((entry, index) => (
+                      <div
+                        key={index}
+                        className="flex flex-col bg-gray-700/50 p-3 rounded-lg hover:bg-gray-700/70 transition-all"
+                      >
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-3">
+                            <span className={`w-6 h-6 flex items-center justify-center rounded-full text-sm font-bold ${
+                              index === 0 ? 'bg-yellow-500 text-gray-900' :
+                              index === 1 ? 'bg-gray-300 text-gray-900' :
+                              index === 2 ? 'bg-yellow-700 text-white' :
+                              'bg-gray-600 text-gray-300'
+                            }`}>
+                              {index + 1}
+                            </span>
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {entry.playerName || 'Anonymous'}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end">
+                            <span className="text-green-400 font-bold">
+                              {entry.score} pts
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              Level {entry.level}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-400">
+                    No scores yet. Be the first to play!
                   </div>
                 )}
               </div>
@@ -569,8 +614,12 @@ export default function Game() {
                       </option>
                     ))}
                   </select>
-                  <div className="text-sm text-gray-400">
-                    {getLevelInfo(level).info}
+                  <div className="bg-gray-700/50 p-4 rounded-lg space-y-2">
+                    <p className="text-blue-400">🎮 {getLevelInfo(level).name} Mode</p>
+                    <p className="text-purple-400">⚡ Speed: {getLevelInfo(level).speed}</p>
+                    <p className="text-pink-400">💎 Points Multiplier: {getLevelInfo(level).points}</p>
+                    <p className="text-gray-300 mt-2">{getLevelInfo(level).info}</p>
+                    <p className="text-gray-400 text-sm mt-2">🎯 {getLevelInfo(level).controls}</p>
                   </div>
                   <button
                     onClick={startGame}
@@ -592,24 +641,6 @@ export default function Game() {
                 </div>
               </div>
             )}
-            <div className="mt-8">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Leaderboard</h2>
-                <select
-                  value={leaderboardSize}
-                  onChange={(e) => {
-                    setLeaderboardSize(Number(e.target.value));
-                    fetchLeaderboard();
-                  }}
-                  className="bg-gray-700 text-white px-3 py-1 rounded-lg border border-gray-600 text-sm"
-                >
-                  <option value={10}>Top 10</option>
-                  <option value={25}>Top 25</option>
-                  <option value={50}>Top 50</option>
-                  <option value={100}>Top 100</option>
-                </select>
-              </div>
-            </div>
           </div>
         </div>
       </div>
