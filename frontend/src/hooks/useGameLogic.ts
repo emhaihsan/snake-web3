@@ -3,7 +3,7 @@ import { Point, GameState } from '@/types/game';
 
 interface UseGameLogicProps {
     gameState: GameState;
-    CANVAS_SIZE: number;
+    canvasSize: number;
     GRID_SIZE: number;
     updateGameState: (updates: Partial<GameState>) => void;
     createFoodParticles: (x: number, y: number) => void;
@@ -16,7 +16,7 @@ interface UseGameLogicProps {
 
 export const useGameLogic = ({
     gameState,
-    CANVAS_SIZE,
+    canvasSize,
     GRID_SIZE,
     updateGameState,
     createFoodParticles,
@@ -38,16 +38,16 @@ export const useGameLogic = ({
 
         switch (direction) {
             case 'UP':
-                head.y = (head.y - 1 + CANVAS_SIZE / GRID_SIZE) % (CANVAS_SIZE / GRID_SIZE);
+                head.y = (head.y - 1 + canvasSize / GRID_SIZE) % (canvasSize / GRID_SIZE);
                 break;
             case 'DOWN':
-                head.y = (head.y + 1) % (CANVAS_SIZE / GRID_SIZE);
+                head.y = (head.y + 1) % (canvasSize / GRID_SIZE);
                 break;
             case 'LEFT':
-                head.x = (head.x - 1 + CANVAS_SIZE / GRID_SIZE) % (CANVAS_SIZE / GRID_SIZE);
+                head.x = (head.x - 1 + canvasSize / GRID_SIZE) % (canvasSize / GRID_SIZE);
                 break;
             case 'RIGHT':
-                head.x = (head.x + 1) % (CANVAS_SIZE / GRID_SIZE);
+                head.x = (head.x + 1) % (canvasSize / GRID_SIZE);
                 break;
         }
 
@@ -69,7 +69,7 @@ export const useGameLogic = ({
         newSnake.unshift(head);
         updateGameState({ snake: newSnake });
         drawGame();
-    }, [snake, food, direction, level, CANVAS_SIZE, GRID_SIZE, checkCollision, createFoodParticles, drawGame, generateFood, handleGameOver, updateGameState, gameState.score]);
+    }, [snake, food, direction, level, canvasSize, GRID_SIZE, checkCollision, createFoodParticles, drawGame, generateFood, handleGameOver, updateGameState, gameState.score]);
 
     const handleKeyPress = useCallback((e: KeyboardEvent) => {
         if (!gameStarted || gameOver) return;

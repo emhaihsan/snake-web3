@@ -4,7 +4,7 @@ import { FoodParticle } from '@/types/particle';
 
 interface GameRendererProps {
   canvasRef: React.RefObject<HTMLCanvasElement>;
-  CANVAS_SIZE: number;
+  canvasSize: number;
   GRID_SIZE: number;
   snake: Point[];
   food: Point;
@@ -13,7 +13,7 @@ interface GameRendererProps {
 
 export const useGameRenderer = ({
   canvasRef,
-  CANVAS_SIZE,
+  canvasSize,
   GRID_SIZE,
   snake,
   food,
@@ -21,17 +21,17 @@ export const useGameRenderer = ({
 }: GameRendererProps) => {
   const drawGrid = useCallback((ctx: CanvasRenderingContext2D) => {
     ctx.strokeStyle = '#222222';
-    for (let i = 0; i < CANVAS_SIZE; i += GRID_SIZE) {
+    for (let i = 0; i < canvasSize; i += GRID_SIZE) {
       ctx.beginPath();
       ctx.moveTo(i, 0);
-      ctx.lineTo(i, CANVAS_SIZE);
+      ctx.lineTo(i, canvasSize);
       ctx.stroke();
       ctx.beginPath();
       ctx.moveTo(0, i);
-      ctx.lineTo(CANVAS_SIZE, i);
+      ctx.lineTo(canvasSize, i);
       ctx.stroke();
     }
-  }, [CANVAS_SIZE, GRID_SIZE]);
+  }, [canvasSize, GRID_SIZE]);
 
   const drawSnake = useCallback((ctx: CanvasRenderingContext2D) => {
     snake.forEach(({ x, y }, index) => {
@@ -88,25 +88,25 @@ export const useGameRenderer = ({
 
     // Clear canvas
     ctx.fillStyle = '#111111';
-    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    ctx.fillRect(0, 0, canvasSize, canvasSize);
 
     // Draw components
     drawGrid(ctx);
     drawSnake(ctx);
     drawFood(ctx);
     drawParticles(ctx);
-  }, [canvasRef, CANVAS_SIZE, drawGrid, drawSnake, drawFood, drawParticles]);
+  }, [canvasRef, canvasSize, drawGrid, drawSnake, drawFood, drawParticles]);
 
   const generateFood = useCallback((): Point => {
     let newFood: Point;
     do {
       newFood = {
-        x: Math.floor(Math.random() * (CANVAS_SIZE / GRID_SIZE)),
-        y: Math.floor(Math.random() * (CANVAS_SIZE / GRID_SIZE)),
+        x: Math.floor(Math.random() * (canvasSize / GRID_SIZE)),
+        y: Math.floor(Math.random() * (canvasSize / GRID_SIZE)),
       };
     } while (snake.some(segment => segment.x === newFood.x && segment.y === newFood.y));
     return newFood;
-  }, [CANVAS_SIZE, GRID_SIZE, snake]);
+  }, [canvasSize, GRID_SIZE, snake]);
 
   return {
     drawGame,

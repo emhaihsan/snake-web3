@@ -36,7 +36,7 @@ export default function Game() {
   const LEADERBOARD_SIZE = 100;
 
   // Game constants
-  const CANVAS_SIZE = 600;
+  const [canvasSize, setCanvasSize] = useState(600);
   const GRID_SIZE = 25;
   const MAX_LEVEL = 5; 
 
@@ -44,7 +44,7 @@ export default function Game() {
   const getSnakeSpeed = calculateSnakeSpeed(level);
   const { drawGame, generateFood } = useGameRenderer({
     canvasRef,
-    CANVAS_SIZE,
+    canvasSize,
     GRID_SIZE,
     snake,
     food,
@@ -101,7 +101,7 @@ export default function Game() {
       gameStarted,
       level
     },
-    CANVAS_SIZE,
+    canvasSize,
     GRID_SIZE,
     updateGameState,
     createFoodParticles,
@@ -239,7 +239,27 @@ export default function Game() {
     fetchLeaderboard();
   }, [level, publicClient]);
 
-  // Initialize game
+  useEffect(() => {
+    function updateCanvasSize() {
+      if (typeof window !== 'undefined') {
+        const width = window.innerWidth;
+        if (width < 640) { // mobile
+          setCanvasSize(Math.min(width - 32, 400));
+        } else if (width < 1024) { // tablet
+          setCanvasSize(500);
+        } else { // desktop
+          setCanvasSize(600);
+        }
+      }
+    }
+    
+    updateCanvasSize();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', updateCanvasSize);
+      return () => window.removeEventListener('resize', updateCanvasSize);
+    }
+  }, []);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -247,16 +267,16 @@ export default function Game() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    canvas.width = CANVAS_SIZE;
-    canvas.height = CANVAS_SIZE;
-  }, []);
+    canvas.width = canvasSize;
+    canvas.height = canvasSize;
+  }, [canvasSize]);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-start p-8 bg-gradient-to-b from-black to-gray-900 text-white">
+    <main className="flex min-h-screen flex-col items-center justify-start p-2 sm:p-4 lg:p-8 bg-gradient-to-b from-black to-gray-900 text-white">
       {/* Game Over Modal */}
       {gameOver && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-gray-800 p-8 rounded-lg shadow-xl max-w-md w-full mx-4 border border-gray-700">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-gray-800 p-4 sm:p-6 rounded-lg shadow-xl w-full max-w-md mx-auto border border-gray-700">
             <h2 className="text-3xl font-bold mb-4 text-center bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">Game Over!</h2>
             <div className="space-y-4">
               <div className="text-center">
@@ -299,31 +319,38 @@ export default function Game() {
       )}
 
       <div className="w-full max-w-7xl">
-      <div className="flex justify-end mb-4">
-    <WalletButton />
-  </div>
-        <h1 className="text-6xl font-bold mb-8 text-center bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+        <div className="flex justify-end mb-2 sm:mb-4">
+          <WalletButton />
+        </div>
+        <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold mb-3 sm:mb-6 text-center bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
           Web3 Snake Game
         </h1>
-        <p className="text-gray-400 text-center mb-8 italic">
-        Connect your Wallet and Play the Classic Nostalgic Snake Game,<br /> - Every Move Recorded, Every Score Immortalized. Play and Earn ULO Tokens!
-      </p>
+        <p className="text-gray-400 text-center mb-4 sm:mb-6 italic text-sm sm:text-base">
+          Connect your Wallet and Play the Classic Nostalgic Snake Game,
+          <br className="hidden sm:block" /> 
+          - Every Move Recorded, Every Score Immortalized. Play and Earn ULO Tokens!
+        </p>
         
-        <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 sm:gap-6 lg:gap-8">
           {/* Game Section */}
-          <div className="flex flex-col items-center gap-6">
-            <div className="relative">
-              <div className="absolute -inset-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-lg blur opacity-20"></div>
-              <div className="relative bg-gray-900 p-6 rounded-lg shadow-neon">
+          <div className="flex flex-col items-center gap-4 sm:gap-6">
+            <div className="relative w-full flex justify-center">
+              <div className="absolute -inset-1.5 sm:-inset-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-lg blur opacity-20"></div>
+              <div className="relative bg-gray-900 p-2 sm:p-4 rounded-lg shadow-neon">
                 <canvas 
                   ref={canvasRef} 
-                  className="border-2 border-gray-700 rounded"
+                  className="border-2 border-gray-700 rounded w-full"
+                  style={{ 
+                    maxWidth: `${canvasSize}px`,
+                    height: `${canvasSize}px`,
+                    width: `${canvasSize}px`
+                  }}
                 />
               </div>
             </div>
 
             {/* Leaderboard Section */}
-            <div className="mt-8" style={{ width: CANVAS_SIZE + 100}}>
+            <div className="mt-4 sm:mt-6 w-full px-2" style={{ maxWidth: canvasSize + 50 }}>
               <div className="flex flex-col gap-4">
                 <h2 className="text-xl font-bold bg-gradient-to-r from-yellow-500 to-yellow-300 bg-clip-text text-transparent">
                   🏆 Top 100 Players
@@ -381,9 +408,9 @@ export default function Game() {
           </div>
 
           {/* Right Column: Game Controls & Level Selection */}
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4 w-full px-2 sm:px-0">
             {/* Game Info */}
-            <div className="bg-gray-800/50 p-4 rounded-lg backdrop-blur-sm">
+            <div className="bg-gray-800/50 p-3 sm:p-4 rounded-lg backdrop-blur-sm">
               <div className="flex gap-6 items-center justify-center">
                 <div className="text-2xl font-bold">
                   <span className="text-blue-400">Level: </span>
@@ -397,14 +424,16 @@ export default function Game() {
             </div>
 
             {/* Controls Info */}
-            <div className="bg-gray-800/50 p-4 rounded-lg backdrop-blur-sm text-center">
-              <p>Use <span className="text-yellow-400">WASD</span> keys to control the snake</p>
+            <div className="bg-gray-800/50 p-3 sm:p-4 rounded-lg backdrop-blur-sm text-center">
+              <p className="text-sm sm:text-base">
+                Use <span className="text-yellow-400">WASD</span> keys to control the snake
+              </p>
             </div>
 
             {/* Level Selection */}
             {!gameStarted && (
-              <div className="bg-gray-800/50 p-6 rounded-lg backdrop-blur-sm">
-                <h3 className="text-xl font-bold mb-4 text-center">Level Selection</h3>
+              <div className="bg-gray-800/50 p-4 sm:p-6 rounded-lg backdrop-blur-sm">
+                <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-center">Level Selection</h3>
                 <div className="flex flex-col gap-4">
                   <select
                     value={level}
