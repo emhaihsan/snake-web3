@@ -36,7 +36,8 @@ export const useGameRenderer = ({
   }, [canvasSize, GRID_SIZE]);
 
   const drawSnake = useCallback((ctx: CanvasRenderingContext2D) => {
-    snake.forEach(({ x, y }, index) => {
+    // Gambar badan ular terlebih dahulu
+    snake.slice(1).forEach(({ x, y }) => {
       const pixelX = gridToPixel(x);
       const pixelY = gridToPixel(y);
 
@@ -51,10 +52,57 @@ export const useGameRenderer = ({
 
       ctx.fillStyle = gradient;
       ctx.shadowColor = '#00ff00';
-      ctx.shadowBlur = index === 0 ? 10 : 5;
-      ctx.fillRect(pixelX, pixelY, GRID_SIZE - 2, GRID_SIZE - 2);
+      ctx.shadowBlur = 5;
+      // Menggambar segmen badan tanpa margin
+      ctx.fillRect(pixelX, pixelY, GRID_SIZE, GRID_SIZE);
       ctx.shadowBlur = 0;
     });
+
+    // Gambar kepala ular dengan style khusus
+    if (snake.length > 0) {
+      const head = snake[0];
+      const pixelX = gridToPixel(head.x);
+      const pixelY = gridToPixel(head.y);
+
+      // Gradient khusus untuk kepala
+      const headGradient = ctx.createLinearGradient(
+        pixelX,
+        pixelY,
+        pixelX + GRID_SIZE,
+        pixelY + GRID_SIZE
+      );
+      headGradient.addColorStop(0, '#00ff88');
+      headGradient.addColorStop(1, '#00aa66');
+
+      ctx.fillStyle = headGradient;
+      ctx.shadowColor = '#00ff88';
+      ctx.shadowBlur = 15;
+
+      // Gambar kepala tanpa margin
+      ctx.fillRect(pixelX, pixelY, GRID_SIZE, GRID_SIZE);
+
+      // Tambahkan "mata" pada kepala ular
+      ctx.fillStyle = '#000000';
+      ctx.shadowBlur = 0;
+
+      // Posisi mata berdasarkan arah gerak ular
+      const eyeSize = GRID_SIZE / 6;
+      const eyeOffset = GRID_SIZE / 4;
+      const eyeY = pixelY + eyeOffset; // Default eye Y position
+
+      let leftEyeX = pixelX + eyeOffset;
+      let rightEyeX = pixelX + GRID_SIZE - eyeOffset;
+
+      // Mata kiri
+      ctx.beginPath();
+      ctx.arc(leftEyeX, eyeY, eyeSize, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Mata kanan
+      ctx.beginPath();
+      ctx.arc(rightEyeX, eyeY, eyeSize, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }, [snake, GRID_SIZE, gridToPixel]);
 
   const drawFood = useCallback((ctx: CanvasRenderingContext2D) => {

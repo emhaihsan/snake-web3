@@ -30,34 +30,33 @@ export const useGameLogic = ({
     const CELL_COUNT = 25; // Konstanta untuk jumlah sel
 
     const checkCollision = useCallback((head: Point) => {
-        return snake.slice(1).some((segment) => segment.x === head.x && segment.y === head.y);
+        // Skip checking the last segment since it will be removed
+        return snake.slice(0, -1).some((segment) => segment.x === head.x && segment.y === head.y);
     }, [snake]);
 
     const moveSnake = useCallback(() => {
         const newSnake = [...snake];
         const head = { ...newSnake[0] };
+        let newHead = { ...head };
 
         switch (direction) {
             case 'UP':
-                head.y = (head.y - 1 + CELL_COUNT) % CELL_COUNT;
+                newHead.y = (head.y - 1 + CELL_COUNT) % CELL_COUNT;
                 break;
             case 'DOWN':
-                head.y = (head.y + 1) % CELL_COUNT;
+                newHead.y = (head.y + 1) % CELL_COUNT;
                 break;
             case 'LEFT':
-                head.x = (head.x - 1 + CELL_COUNT) % CELL_COUNT;
+                newHead.x = (head.x - 1 + CELL_COUNT) % CELL_COUNT;
                 break;
             case 'RIGHT':
-                head.x = (head.x + 1) % CELL_COUNT;
+                newHead.x = (head.x + 1) % CELL_COUNT;
                 break;
         }
 
-        if (checkCollision(head)) {
-            handleGameOver();
-            return;
-        }
-
-        if (head.x === food.x && head.y === food.y) {
+        // Update snake position first
+        newSnake.unshift(newHead);
+        if (newHead.x === food.x && newHead.y === food.y) {
             updateGameState({
                 score: gameState.score + (level * 10)
             });
@@ -67,9 +66,19 @@ export const useGameLogic = ({
             newSnake.pop();
         }
 
-        newSnake.unshift(head);
+        // Update state to show the collision frame
         updateGameState({ snake: newSnake });
         drawGame();
+
+        // Check collision after updating position
+        if (checkCollision(newHead)) {
+            // Delay game over slightly to show collision frame
+            setTimeout(() => {
+                handleGameOver();
+            }, 50);
+            return;
+        }
+
     }, [snake, food, direction, level, CELL_COUNT, checkCollision, createFoodParticles, drawGame, generateFood, handleGameOver, updateGameState, gameState.score]);
 
     const handleKeyPress = useCallback((e: KeyboardEvent) => {
