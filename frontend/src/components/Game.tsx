@@ -306,7 +306,7 @@ export default function Game() {
           Web3 Snake Game
         </h1>
         <p className="text-gray-400 text-center mb-8 italic">
-        Connect your Wallet and Play the Classic Nostalgic Snake Game, - Every Move Recorded, Every Score Immortalized. Play and Earn ULO Tokens!
+        Connect your Wallet and Play the Classic Nostalgic Snake Game,<br /> - Every Move Recorded, Every Score Immortalized. Play and Earn ULO Tokens!
       </p>
         
         <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8">
