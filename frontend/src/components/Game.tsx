@@ -9,7 +9,7 @@ import SnakeGameABI from '../web3/abi/SnakeGame.json';
 import { getLevelInfo } from '@/constant/levels';
 import { calculateSnakeSpeed } from '@/utils/speed';
 import { useParticles } from '@/hooks/useParticles';
-
+import { useGameRenderer } from '@/hooks/useGameRenderer';
 
 type ContractError = {
   message?: string;
@@ -41,6 +41,14 @@ export default function Game() {
 
   const { particles, createFoodParticles, updateParticles } = useParticles(GRID_SIZE);
   const getSnakeSpeed = calculateSnakeSpeed(level);
+  const { drawGame, generateFood } = useGameRenderer({
+    canvasRef,
+    CANVAS_SIZE,
+    GRID_SIZE,
+    snake,
+    food,
+    particles,
+  });
 
   // Start game with smart contract
   const startGame = async () => {
@@ -181,7 +189,6 @@ export default function Game() {
 
     canvas.width = CANVAS_SIZE;
     canvas.height = CANVAS_SIZE;
-    drawGame();
   }, []);
 
   // Game loop with particle updates
@@ -242,7 +249,6 @@ export default function Game() {
         break;
     }
 
-    // Check only for self-collision
     if (checkCollision(head)) {
       handleGameOver();
       return;
@@ -251,7 +257,7 @@ export default function Game() {
     if (head.x === food.x && head.y === food.y) {
       setScore(score + (level * 10));
       createFoodParticles(food.x, food.y);
-      generateFood();
+      setFood(generateFood());
     } else {
       newSnake.pop();
     }
@@ -261,88 +267,10 @@ export default function Game() {
     drawGame();
   };
 
-  const generateFood = () => {
-    let newFood: { x: number; y: number };
-    do {
-      newFood = {
-        x: Math.floor(Math.random() * (CANVAS_SIZE / GRID_SIZE)),
-        y: Math.floor(Math.random() * (CANVAS_SIZE / GRID_SIZE)),
-      };
-    } while (snake.some(segment => segment.x === newFood.x && segment.y === newFood.y));
-    setFood(newFood);
-  };
-
   const checkCollision = (head: { x: number; y: number }) => {
     return snake.slice(1).some((segment) => segment.x === head.x && segment.y === head.y);
   };
 
-  const drawGame = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Clear canvas
-    ctx.fillStyle = '#111111';
-    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-
-    // Draw grid
-    ctx.strokeStyle = '#222222';
-    for (let i = 0; i < CANVAS_SIZE; i += GRID_SIZE) {
-      ctx.beginPath();
-      ctx.moveTo(i, 0);
-      ctx.lineTo(i, CANVAS_SIZE);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(0, i);
-      ctx.lineTo(CANVAS_SIZE, i);
-      ctx.stroke();
-    }
-
-    // Draw snake with gradient
-    snake.forEach(({ x, y }, index) => {
-      const gradient = ctx.createLinearGradient(
-        x * GRID_SIZE,
-        y * GRID_SIZE,
-        (x + 1) * GRID_SIZE,
-        (y + 1) * GRID_SIZE
-      );
-      gradient.addColorStop(0, '#00ff00');
-      gradient.addColorStop(1, '#008800');
-      
-      ctx.fillStyle = gradient;
-      ctx.shadowColor = '#00ff00';
-      ctx.shadowBlur = index === 0 ? 10 : 5;
-      ctx.fillRect(x * GRID_SIZE, y * GRID_SIZE, GRID_SIZE - 2, GRID_SIZE - 2);
-      ctx.shadowBlur = 0;
-    });
-
-    // Draw food with glow effect
-    ctx.fillStyle = '#ff0000';
-    ctx.shadowColor = '#ff0000';
-    ctx.shadowBlur = 15;
-    ctx.beginPath();
-    ctx.arc(
-      food.x * GRID_SIZE + GRID_SIZE / 2,
-      food.y * GRID_SIZE + GRID_SIZE / 2,
-      GRID_SIZE / 2 - 2,
-      0,
-      Math.PI * 2
-    );
-    ctx.fill();
-    ctx.shadowBlur = 0;
-
-    // Draw particles
-    particles.forEach(particle => {
-      ctx.fillStyle = particle.color;
-      ctx.globalAlpha = particle.alpha;
-      ctx.beginPath();
-      ctx.arc(particle.x, particle.y, 3, 0, Math.PI * 2);
-      ctx.fill();
-    });
-    ctx.globalAlpha = 1;
-  };
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-start p-8 bg-gradient-to-b from-black to-gray-900 text-white">

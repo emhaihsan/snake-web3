@@ -6,6 +6,11 @@ export type LeaderboardEntry = {
     timestamp: number;
 };
 
+export interface Point {
+    x: number;
+    y: number;
+}
+
 export type FoodParticle = {
     x: number;
     y: number;
@@ -16,14 +21,23 @@ export type FoodParticle = {
     life: number;
 };
 
-export type SnakeSegment = {
-    x: number;
-    y: number;
-};
+export type SnakeSegment = Point;
 
-export type Food = {
-    x: number;
-    y: number;
-};
+export type Food = Point;
 
 export type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
+
+export interface GameState {
+    snake: Point[];
+    food: Point;
+    direction: Direction;
+    score: number;
+    gameOver: boolean;
+    gameStarted: boolean;
+    level: number;
+}
+
+export interface LevelInfo {
+    requiredScore: number;
+    speedMultiplier: number;
+}
