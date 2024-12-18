@@ -23,7 +23,7 @@
 
 ### Frontend
 - **Framework**: Next.js with TypeScript.
-- **Web3 Integration**: wagmi for wallet connections.
+- **Web3 Integration**: rainbowkit for wallet connections.
 ### Smart Contract
 - **Development**: Solidity with Hardhat environment.
 - **Standards**: OpenZeppelin for secure smart contract practices.
