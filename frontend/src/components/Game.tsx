@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAccount } from 'wagmi';
 import { publicClient, getWalletClient, SNAKE_GAME_ADDRESS} from '../web3/config';
 import WalletButton from './WalletButton';
@@ -10,6 +10,7 @@ import { getLevelInfo } from '@/constant/levels';
 import { calculateSnakeSpeed } from '@/utils/speed';
 import { useParticles } from '@/hooks/useParticles';
 import { useGameRenderer } from '@/hooks/useGameRenderer';
+import { useGameLogic } from '@/hooks/useGameLogic';
 
 type ContractError = {
   message?: string;
@@ -48,6 +49,67 @@ export default function Game() {
     snake,
     food,
     particles,
+  });
+
+  const updateGameState = useCallback((updates: Partial<{
+    snake: SnakeSegment[];
+    food: Food;
+    direction: Direction;
+    score: number;
+    gameOver: boolean;
+    gameStarted: boolean;
+    level: number;
+  }>) => {
+    Object.entries(updates).forEach(([key, value]) => {
+      switch (key) {
+        case 'snake':
+          setSnake(value as SnakeSegment[]);
+          break;
+        case 'food':
+          setFood(value as Food);
+          break;
+        case 'direction':
+          setDirection(value as Direction);
+          break;
+        case 'score':
+          setScore(value as number);
+          break;
+        case 'gameOver':
+          setGameOver(value as boolean);
+          break;
+        case 'gameStarted':
+          setGameStarted(value as boolean);
+          break;
+        case 'level':
+          setLevel(value as number);
+          break;
+      }
+    });
+  }, []);
+
+  const handleGameOver = () => {
+    setGameOver(true);
+  };
+
+  useGameLogic({
+    gameState: {
+      snake,
+      food,
+      direction,
+      score,
+      gameOver,
+      gameStarted,
+      level
+    },
+    CANVAS_SIZE,
+    GRID_SIZE,
+    updateGameState,
+    createFoodParticles,
+    generateFood,
+    handleGameOver,
+    updateParticles,
+    drawGame,
+    getSnakeSpeed
   });
 
   // Start game with smart contract
@@ -89,9 +151,7 @@ export default function Game() {
     }
   };
 
-  const handleGameOver = () => {
-    setGameOver(true);
-  };
+
 
   const submitScoreAndMint = async () => {
     if (!address || isMinting) return;
@@ -190,87 +250,6 @@ export default function Game() {
     canvas.width = CANVAS_SIZE;
     canvas.height = CANVAS_SIZE;
   }, []);
-
-  // Game loop with particle updates
-  useEffect(() => {
-    if (!gameStarted || gameOver) return;
-
-    const gameInterval = setInterval(() => {
-      gameLoop();
-      updateParticles();
-    }, getSnakeSpeed);
-    
-    return () => clearInterval(gameInterval);
-  }, [snake, food, direction, gameStarted, gameOver, level, particles]);
-
-  // Handle keyboard controls
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (!gameStarted || gameOver) return;
-
-      switch (e.key.toLowerCase()) {
-        case 'w':
-          if (direction !== 'DOWN') setDirection('UP');
-          break;
-        case 's':
-          if (direction !== 'UP') setDirection('DOWN');
-          break;
-        case 'a':
-          if (direction !== 'RIGHT') setDirection('LEFT');
-          break;
-        case 'd':
-          if (direction !== 'LEFT') setDirection('RIGHT');
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [gameStarted, gameOver, direction]);
-
-  const gameLoop = () => {
-    if (!canvasRef.current || gameOver) return;
-
-    const newSnake = [...snake];
-    const head = { ...newSnake[0] };
-
-    switch (direction) {
-      case 'UP':
-        head.y = (head.y - 1 + CANVAS_SIZE / GRID_SIZE) % (CANVAS_SIZE / GRID_SIZE);
-        break;
-      case 'DOWN':
-        head.y = (head.y + 1) % (CANVAS_SIZE / GRID_SIZE);
-        break;
-      case 'LEFT':
-        head.x = (head.x - 1 + CANVAS_SIZE / GRID_SIZE) % (CANVAS_SIZE / GRID_SIZE);
-        break;
-      case 'RIGHT':
-        head.x = (head.x + 1) % (CANVAS_SIZE / GRID_SIZE);
-        break;
-    }
-
-    if (checkCollision(head)) {
-      handleGameOver();
-      return;
-    }
-
-    if (head.x === food.x && head.y === food.y) {
-      setScore(score + (level * 10));
-      createFoodParticles(food.x, food.y);
-      setFood(generateFood());
-    } else {
-      newSnake.pop();
-    }
-
-    newSnake.unshift(head);
-    setSnake(newSnake);
-    drawGame();
-  };
-
-  const checkCollision = (head: { x: number; y: number }) => {
-    return snake.slice(1).some((segment) => segment.x === head.x && segment.y === head.y);
-  };
-
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-start p-8 bg-gradient-to-b from-black to-gray-900 text-white">
