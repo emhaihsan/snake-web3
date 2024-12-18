@@ -6,6 +6,8 @@ import { publicClient, getWalletClient, SNAKE_GAME_ADDRESS} from '../web3/config
 import WalletButton from './WalletButton';
 import { LeaderboardEntry, FoodParticle, SnakeSegment, Food, Direction } from '../types/game';
 import SnakeGameABI from '../web3/abi/SnakeGame.json';
+import { getLevelInfo } from '@/constant/levels';
+
 
 type ContractError = {
   message?: string;
@@ -37,59 +39,7 @@ export default function Game() {
   const BASE_SPEED = 150;
   const MAX_LEVEL = 5; // Reduced to 5 levels
 
-  // Level information
-  const getLevelInfo = (level: number) => {
-    switch (level) {
-      case 1:
-        return {
-          name: 'Easy',
-          speed: 'Slow',
-          points: '1x',
-          info: 'Perfect for beginners! Snake moves slowly giving you time to think. Each food gives 10 point and 10 ULO token.',
-          controls: 'Use arrow keys or WASD to control the snake.'
-        };
-      case 2:
-        return {
-          name: 'Medium',
-          speed: 'Normal',
-          points: '2x',
-          info: 'A balanced challenge! Snake moves faster and points are doubled. Each food gives 20 points and 20 ULO tokens.',
-          controls: 'Quick reflexes required. Watch out for your growing tail!'
-        };
-      case 3:
-        return {
-          name: 'Hard',
-          speed: 'Fast',
-          points: '3x',
-          info: 'For experienced players! Snake moves quickly and points are tripled. Each food gives 30 points and 30 ULO tokens.',
-          controls: 'Plan your moves ahead. Space is limited as you grow!'
-        };
-      case 4:
-        return {
-          name: 'Expert',
-          speed: 'Very Fast',
-          points: '4x',
-          info: 'The ultimate challenge! Lightning-fast snake movement with 4x points. Each food gives 40 points and 40 ULO tokens.',
-          controls: 'Master-level precision needed. One wrong move and it\'s game over!'
-        };
-      case 5:
-        return {
-          name: 'Master',
-          speed: 'Insane',
-          points: '5x',
-          info: 'Only for the elite! Insane speed with maximum rewards. Each food gives 50 points and 50 ULO tokens.',
-          controls: 'Superhuman reflexes required. Can you handle the pressure?'
-        };
-      default:
-        return {
-          name: 'Easy',
-          speed: 'Slow',
-          points: '1x',
-          info: 'Perfect for beginners. Snake moves slowly.',
-          controls: 'Use arrow keys or WASD to control the snake.'
-        };
-    }
-  };
+ 
 
   // Get snake speed based on level
   const getSnakeSpeed = () => {
