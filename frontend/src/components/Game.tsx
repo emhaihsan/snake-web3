@@ -33,7 +33,7 @@ export default function Game() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
-  const [leaderboardSize, setLeaderboardSize] = useState(10);
+  const LEADERBOARD_SIZE = 100;
 
   // Game constants
   const CANVAS_SIZE = 600;
@@ -207,7 +207,7 @@ export default function Game() {
         address: SNAKE_GAME_ADDRESS,
         abi: SnakeGameABI.abi,
         functionName: 'getRecentScores',
-        args: [level, BigInt(leaderboardSize)],
+        args: [level, BigInt(LEADERBOARD_SIZE)],
       })) as LeaderboardEntry[];
 
       // Format and sort the leaderboard data
@@ -323,33 +323,11 @@ export default function Game() {
             </div>
 
             {/* Leaderboard Section */}
-            <div className="mt-8" style={{ width: CANVAS_SIZE }}>
+            <div className="mt-8" style={{ width: CANVAS_SIZE + 100}}>
               <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-bold bg-gradient-to-r from-yellow-500 to-yellow-300 bg-clip-text text-transparent">
-                      🏆 Leaderboard
-                    </h2>
-                  </div>
-                  <div className="flex gap-2">
-                    {[10, 25, 50, 100].map((size) => (
-                      <button
-                        key={size}
-                        onClick={() => {
-                          setLeaderboardSize(size);
-                          fetchLeaderboard();
-                        }}
-                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-all ${
-                          leaderboardSize === size
-                            ? 'bg-yellow-500 text-gray-900'
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        }`}
-                      >
-                        Top {size}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <h2 className="text-xl font-bold bg-gradient-to-r from-yellow-500 to-yellow-300 bg-clip-text text-transparent">
+                  🏆 Top 100 Players
+                </h2>
                 
                 {isLoadingLeaderboard ? (
                   <div className="flex justify-center py-8">
@@ -358,7 +336,11 @@ export default function Game() {
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                   </div>
-                ) : leaderboard.length > 0 ? (
+                ) : leaderboard.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    No scores yet. Be the first to play!
+                  </div>
+                ) : (
                   <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                     {leaderboard.map((entry, index) => (
                       <div
@@ -392,10 +374,6 @@ export default function Game() {
                         </div>
                       </div>
                     ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-400">
-                    No scores yet. Be the first to play!
                   </div>
                 )}
               </div>
