@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { publicClient, getWalletClient, SNAKE_GAME_ADDRESS} from '../web3/config';
 import WalletButton from './WalletButton';
-import { LeaderboardEntry, FoodParticle, SnakeSegment, Food, Direction } from '../types/game';
+import { LeaderboardEntry, SnakeSegment, Food, Direction } from '../types/game';
 import SnakeGameABI from '../web3/abi/SnakeGame.json';
 import { getLevelInfo } from '@/constant/levels';
+import { calculateSnakeSpeed } from '@/utils/speed';
+import { useParticles } from '@/hooks/useParticles';
 
 
 type ContractError = {
@@ -26,7 +28,6 @@ export default function Game() {
   const [gameStarted, setGameStarted] = useState(false);
   const [level, setLevel] = useState(1);
   const [playerName, setPlayerName] = useState('');
-  const [particles, setParticles] = useState<FoodParticle[]>([]);
   const [isMinting, setIsMinting] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
@@ -36,55 +37,10 @@ export default function Game() {
   // Game constants
   const CANVAS_SIZE = 600;
   const GRID_SIZE = 25;
-  const BASE_SPEED = 150;
-  const MAX_LEVEL = 5; // Reduced to 5 levels
+  const MAX_LEVEL = 5; 
 
- 
-
-  // Get snake speed based on level
-  const getSnakeSpeed = () => {
-    return BASE_SPEED - (level - 1) * 25; // Adjusted speed difference
-  };
-
-  // Get random color for particles
-  const getRandomColor = () => {
-    const colors = ['#ff0000', '#ff3333', '#ff6666', '#ff9999'];
-    return colors[Math.floor(Math.random() * colors.length)];
-  };
-
-  // Create food particles
-  const createFoodParticles = (x: number, y: number) => {
-    const particles: FoodParticle[] = [];
-    for (let i = 0; i < 8; i++) {
-      const angle = (Math.PI * 2 * i) / 8;
-      particles.push({
-        x: x * GRID_SIZE + GRID_SIZE / 2,
-        y: y * GRID_SIZE + GRID_SIZE / 2,
-        dx: Math.cos(angle) * 2,
-        dy: Math.sin(angle) * 2,
-        alpha: 1,
-        color: getRandomColor(),
-        life: 1
-      });
-    }
-    setParticles(particles);
-  };
-
-  // Update and draw particles
-  const updateParticles = () => {
-    setParticles(prevParticles => 
-      prevParticles
-        .map(p => ({
-          ...p,
-          x: p.x + p.dx,
-          y: p.y + p.dy,
-          life: p.life - 0.02,
-          dx: p.dx * 0.98,
-          dy: p.dy * 0.98
-        }))
-        .filter(p => p.life > 0)
-    );
-  };
+  const { particles, createFoodParticles, updateParticles } = useParticles(GRID_SIZE);
+  const getSnakeSpeed = calculateSnakeSpeed(level);
 
   // Start game with smart contract
   const startGame = async () => {
@@ -235,7 +191,7 @@ export default function Game() {
     const gameInterval = setInterval(() => {
       gameLoop();
       updateParticles();
-    }, getSnakeSpeed());
+    }, getSnakeSpeed);
     
     return () => clearInterval(gameInterval);
   }, [snake, food, direction, gameStarted, gameOver, level, particles]);
