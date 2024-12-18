@@ -305,6 +305,9 @@ export default function Game() {
         <h1 className="text-6xl font-bold mb-8 text-center bg-gradient-to-b from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
           Web3 Snake Game
         </h1>
+        <p className="text-gray-400 text-center mb-8 italic">
+        "connect your wallet and play the classic nostalgic snake game, - Every Move Recorded, Every Score Immortalized. Play and Earn ULO Tokens!"
+      </p>
         
         <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8">
           {/* Game Section */}

@@ -1,5 +1,5 @@
 // src/constant/game.ts
-export const BASE_SPEED = 150;
+export const BASE_SPEED = 125;
 export const SPEED_DECREASE = 25;
 export const PARTICLE_COLORS = ['#ff0000', '#ff3333', '#ff6666', '#ff9999'];
 export const PARTICLE_COUNT = 8;
