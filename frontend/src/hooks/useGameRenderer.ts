@@ -9,6 +9,7 @@ interface GameRendererProps {
   snake: Point[];
   food: Point;
   particles: FoodParticle[];
+  gridToPixel: (coord: number) => number;
 }
 
 export const useGameRenderer = ({
@@ -18,6 +19,7 @@ export const useGameRenderer = ({
   snake,
   food,
   particles,
+  gridToPixel
 }: GameRendererProps) => {
   const drawGrid = useCallback((ctx: CanvasRenderingContext2D) => {
     ctx.strokeStyle = '#222222';
@@ -35,11 +37,14 @@ export const useGameRenderer = ({
 
   const drawSnake = useCallback((ctx: CanvasRenderingContext2D) => {
     snake.forEach(({ x, y }, index) => {
+      const pixelX = gridToPixel(x);
+      const pixelY = gridToPixel(y);
+
       const gradient = ctx.createLinearGradient(
-        x * GRID_SIZE,
-        y * GRID_SIZE,
-        (x + 1) * GRID_SIZE,
-        (y + 1) * GRID_SIZE
+        pixelX,
+        pixelY,
+        pixelX + GRID_SIZE,
+        pixelY + GRID_SIZE
       );
       gradient.addColorStop(0, '#00ff00');
       gradient.addColorStop(1, '#008800');
@@ -47,26 +52,29 @@ export const useGameRenderer = ({
       ctx.fillStyle = gradient;
       ctx.shadowColor = '#00ff00';
       ctx.shadowBlur = index === 0 ? 10 : 5;
-      ctx.fillRect(x * GRID_SIZE, y * GRID_SIZE, GRID_SIZE - 2, GRID_SIZE - 2);
+      ctx.fillRect(pixelX, pixelY, GRID_SIZE - 2, GRID_SIZE - 2);
       ctx.shadowBlur = 0;
     });
-  }, [snake, GRID_SIZE]);
+  }, [snake, GRID_SIZE, gridToPixel]);
 
   const drawFood = useCallback((ctx: CanvasRenderingContext2D) => {
+    const pixelX = gridToPixel(food.x);
+    const pixelY = gridToPixel(food.y);
+
     ctx.fillStyle = '#ff0000';
     ctx.shadowColor = '#ff0000';
     ctx.shadowBlur = 15;
     ctx.beginPath();
     ctx.arc(
-      food.x * GRID_SIZE + GRID_SIZE / 2,
-      food.y * GRID_SIZE + GRID_SIZE / 2,
+      pixelX + GRID_SIZE / 2,
+      pixelY + GRID_SIZE / 2,
       GRID_SIZE / 2 - 2,
       0,
       Math.PI * 2
     );
     ctx.fill();
     ctx.shadowBlur = 0;
-  }, [food, GRID_SIZE]);
+  }, [food, GRID_SIZE, gridToPixel]);
 
   const drawParticles = useCallback((ctx: CanvasRenderingContext2D) => {
     particles.forEach(particle => {

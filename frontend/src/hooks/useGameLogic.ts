@@ -27,6 +27,7 @@ export const useGameLogic = ({
     getSnakeSpeed,
 }: UseGameLogicProps) => {
     const { snake, food, direction, gameStarted, gameOver, level } = gameState;
+    const CELL_COUNT = 25; // Konstanta untuk jumlah sel
 
     const checkCollision = useCallback((head: Point) => {
         return snake.slice(1).some((segment) => segment.x === head.x && segment.y === head.y);
@@ -38,16 +39,16 @@ export const useGameLogic = ({
 
         switch (direction) {
             case 'UP':
-                head.y = (head.y - 1 + canvasSize / GRID_SIZE) % (canvasSize / GRID_SIZE);
+                head.y = (head.y - 1 + CELL_COUNT) % CELL_COUNT;
                 break;
             case 'DOWN':
-                head.y = (head.y + 1) % (canvasSize / GRID_SIZE);
+                head.y = (head.y + 1) % CELL_COUNT;
                 break;
             case 'LEFT':
-                head.x = (head.x - 1 + canvasSize / GRID_SIZE) % (canvasSize / GRID_SIZE);
+                head.x = (head.x - 1 + CELL_COUNT) % CELL_COUNT;
                 break;
             case 'RIGHT':
-                head.x = (head.x + 1) % (canvasSize / GRID_SIZE);
+                head.x = (head.x + 1) % CELL_COUNT;
                 break;
         }
 
@@ -69,7 +70,7 @@ export const useGameLogic = ({
         newSnake.unshift(head);
         updateGameState({ snake: newSnake });
         drawGame();
-    }, [snake, food, direction, level, canvasSize, GRID_SIZE, checkCollision, createFoodParticles, drawGame, generateFood, handleGameOver, updateGameState, gameState.score]);
+    }, [snake, food, direction, level, CELL_COUNT, checkCollision, createFoodParticles, drawGame, generateFood, handleGameOver, updateGameState, gameState.score]);
 
     const handleKeyPress = useCallback((e: KeyboardEvent) => {
         if (!gameStarted || gameOver) return;

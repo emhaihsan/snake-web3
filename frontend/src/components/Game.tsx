@@ -37,8 +37,39 @@ export default function Game() {
 
   // Game constants
   const [canvasSize, setCanvasSize] = useState(600);
-  const GRID_SIZE = 25;
-  const MAX_LEVEL = 5; 
+  const CELL_COUNT = 25; // Jumlah sel dalam satu baris/kolom
+  const GRID_SIZE = canvasSize / CELL_COUNT; // Grid size yang dinamis
+
+  useEffect(() => {
+    function updateCanvasSize() {
+      if (typeof window !== 'undefined') {
+        const width = window.innerWidth;
+        if (width < 640) { // mobile
+          setCanvasSize(Math.min(width - 32, 400));
+        } else if (width < 1024) { // tablet
+          setCanvasSize(500);
+        } else { // desktop
+          setCanvasSize(600);
+        }
+      }
+    }
+    
+    updateCanvasSize();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', updateCanvasSize);
+      return () => window.removeEventListener('resize', updateCanvasSize);
+    }
+  }, []);
+
+  // Fungsi untuk mengkonversi koordinat grid ke pixel
+  const gridToPixel = useCallback((coord: number) => {
+    return Math.floor(coord * GRID_SIZE);
+  }, [GRID_SIZE]);
+
+  // Fungsi untuk mengkonversi pixel ke koordinat grid
+  const pixelToGrid = useCallback((pixel: number) => {
+    return Math.floor(pixel / GRID_SIZE);
+  }, [GRID_SIZE]);
 
   const { particles, createFoodParticles, updateParticles } = useParticles(GRID_SIZE);
   const getSnakeSpeed = calculateSnakeSpeed(level);
@@ -49,6 +80,7 @@ export default function Game() {
     snake,
     food,
     particles,
+    gridToPixel
   });
 
   const updateGameState = useCallback((updates: Partial<{
@@ -89,6 +121,25 @@ export default function Game() {
 
   const handleGameOver = () => {
     setGameOver(true);
+  };
+
+  const handleControlClick = (newDirection: Direction) => {
+    if (!gameStarted || gameOver) return;
+    
+    switch (newDirection) {
+      case 'UP':
+        if (direction !== 'DOWN') setDirection('UP');
+        break;
+      case 'DOWN':
+        if (direction !== 'UP') setDirection('DOWN');
+        break;
+      case 'LEFT':
+        if (direction !== 'RIGHT') setDirection('LEFT');
+        break;
+      case 'RIGHT':
+        if (direction !== 'LEFT') setDirection('RIGHT');
+        break;
+    }
   };
 
   useGameLogic({
@@ -240,27 +291,6 @@ export default function Game() {
   }, [level, publicClient]);
 
   useEffect(() => {
-    function updateCanvasSize() {
-      if (typeof window !== 'undefined') {
-        const width = window.innerWidth;
-        if (width < 640) { // mobile
-          setCanvasSize(Math.min(width - 32, 400));
-        } else if (width < 1024) { // tablet
-          setCanvasSize(500);
-        } else { // desktop
-          setCanvasSize(600);
-        }
-      }
-    }
-    
-    updateCanvasSize();
-    if (typeof window !== 'undefined') {
-      window.addEventListener('resize', updateCanvasSize);
-      return () => window.removeEventListener('resize', updateCanvasSize);
-    }
-  }, []);
-
-  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -346,6 +376,63 @@ export default function Game() {
                     width: `${canvasSize}px`
                   }}
                 />
+              </div>
+            </div>
+
+            {/* Mobile Controls */}
+            <div className="block lg:hidden">
+              <div className="grid grid-cols-3 gap-2 w-48 mx-auto mt-4">
+                {/* Up button */}
+                <div className="col-start-2">
+                  <button
+                    onClick={() => handleControlClick('UP')}
+                    className="w-12 h-12 rounded-lg bg-gray-800/50 hover:bg-gray-700/50 active:bg-gray-600/50 flex items-center justify-center border border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    aria-label="Move Up"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    </svg>
+                  </button>
+                </div>
+                
+                {/* Left button */}
+                <div className="col-start-1 row-start-2">
+                  <button
+                    onClick={() => handleControlClick('LEFT')}
+                    className="w-12 h-12 rounded-lg bg-gray-800/50 hover:bg-gray-700/50 active:bg-gray-600/50 flex items-center justify-center border border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    aria-label="Move Left"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                </div>
+                
+                {/* Right button */}
+                <div className="col-start-3 row-start-2">
+                  <button
+                    onClick={() => handleControlClick('RIGHT')}
+                    className="w-12 h-12 rounded-lg bg-gray-800/50 hover:bg-gray-700/50 active:bg-gray-600/50 flex items-center justify-center border border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    aria-label="Move Right"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+                
+                {/* Down button */}
+                <div className="col-start-2 row-start-3">
+                  <button
+                    onClick={() => handleControlClick('DOWN')}
+                    className="w-12 h-12 rounded-lg bg-gray-800/50 hover:bg-gray-700/50 active:bg-gray-600/50 flex items-center justify-center border border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    aria-label="Move Down"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -440,7 +527,7 @@ export default function Game() {
                     onChange={(e) => setLevel(Number(e.target.value))}
                     className="bg-gray-700 text-white px-4 py-3 rounded-lg border border-gray-600 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   >
-                    {Array.from({ length: MAX_LEVEL }, (_, i) => (
+                    {Array.from({ length: 5 }, (_, i) => (
                       <option key={i + 1} value={i + 1}>
                         Level {i + 1} - {getLevelInfo(i + 1).name}
                       </option>
