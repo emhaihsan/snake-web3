@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAccount } from 'wagmi';
 import { publicClient, getWalletClient, SNAKE_GAME_ADDRESS} from '../web3/config';
 import WalletButton from './WalletButton';
-import { LeaderboardEntry, SnakeSegment, Food, Direction } from '../types/game';
+import { LeaderboardEntry, SnakeSegment, Food, Direction, Point } from '../types/game';
 import SnakeGameABI from '../web3/abi/SnakeGame.json';
 import { getLevelInfo } from '@/constant/levels';
 import { calculateSnakeSpeed } from '@/utils/speed';
@@ -71,17 +71,34 @@ export default function Game() {
     return Math.floor(pixel / GRID_SIZE);
   }, [GRID_SIZE]);
 
+  const generateFood = useCallback((): Point => {
+    const newFood: Point = {
+      x: Math.floor(Math.random() * CELL_COUNT),
+      y: Math.floor(Math.random() * CELL_COUNT)
+    };
+    // Pastikan makanan tidak muncul di tubuh ular
+    if (snake.some(segment => segment.x === newFood.x && segment.y === newFood.y)) {
+      return generateFood();
+    }
+    return newFood;
+  }, [snake]);
+
   const { particles, createFoodParticles, updateParticles } = useParticles(GRID_SIZE);
   const getSnakeSpeed = calculateSnakeSpeed(level);
-  const { drawGame, generateFood } = useGameRenderer({
+  const { drawGame: rendererDrawGame } = useGameRenderer({
     canvasRef,
     canvasSize,
     GRID_SIZE,
-    snake,
-    food,
+    snake: snake,
+    food: food,
     particles,
-    gridToPixel
+    gridToPixel,
+    direction: direction
   });
+
+  const drawGame = useCallback(() => {
+    rendererDrawGame();
+  }, [rendererDrawGame]);
 
   const updateGameState = useCallback((updates: Partial<{
     snake: SnakeSegment[];
@@ -142,7 +159,7 @@ export default function Game() {
     }
   };
 
-  useGameLogic({
+  const { moveSnake, handleKeyPress } = useGameLogic({
     gameState: {
       snake,
       food,

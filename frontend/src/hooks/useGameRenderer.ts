@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Point } from '@/types/game';
+import { Point, Direction } from '@/types/game';
 import { FoodParticle } from '@/types/particle';
 
 interface GameRendererProps {
@@ -10,6 +10,7 @@ interface GameRendererProps {
   food: Point;
   particles: FoodParticle[];
   gridToPixel: (coord: number) => number;
+  direction: Direction;
 }
 
 export const useGameRenderer = ({
@@ -19,7 +20,8 @@ export const useGameRenderer = ({
   snake,
   food,
   particles,
-  gridToPixel
+  gridToPixel,
+  direction
 }: GameRendererProps) => {
   const drawGrid = useCallback((ctx: CanvasRenderingContext2D) => {
     ctx.strokeStyle = '#222222';
@@ -53,55 +55,30 @@ export const useGameRenderer = ({
       ctx.fillStyle = gradient;
       ctx.shadowColor = '#00ff00';
       ctx.shadowBlur = 5;
-      // Menggambar segmen badan tanpa margin
       ctx.fillRect(pixelX, pixelY, GRID_SIZE, GRID_SIZE);
       ctx.shadowBlur = 0;
     });
 
-    // Gambar kepala ular dengan style khusus
+    // Gambar kepala ular dengan warna yang berbeda
     if (snake.length > 0) {
       const head = snake[0];
       const pixelX = gridToPixel(head.x);
       const pixelY = gridToPixel(head.y);
 
-      // Gradient khusus untuk kepala
       const headGradient = ctx.createLinearGradient(
         pixelX,
         pixelY,
         pixelX + GRID_SIZE,
         pixelY + GRID_SIZE
       );
-      headGradient.addColorStop(0, '#00ff88');
-      headGradient.addColorStop(1, '#00aa66');
+      headGradient.addColorStop(0, '#00ff88'); // Warna kepala lebih terang
+      headGradient.addColorStop(1, '#00cc66');
 
       ctx.fillStyle = headGradient;
       ctx.shadowColor = '#00ff88';
-      ctx.shadowBlur = 15;
-
-      // Gambar kepala tanpa margin
+      ctx.shadowBlur = 15; // Glow effect lebih kuat untuk kepala
       ctx.fillRect(pixelX, pixelY, GRID_SIZE, GRID_SIZE);
-
-      // Tambahkan "mata" pada kepala ular
-      ctx.fillStyle = '#000000';
       ctx.shadowBlur = 0;
-
-      // Posisi mata berdasarkan arah gerak ular
-      const eyeSize = GRID_SIZE / 6;
-      const eyeOffset = GRID_SIZE / 4;
-      const eyeY = pixelY + eyeOffset; // Default eye Y position
-
-      let leftEyeX = pixelX + eyeOffset;
-      let rightEyeX = pixelX + GRID_SIZE - eyeOffset;
-
-      // Mata kiri
-      ctx.beginPath();
-      ctx.arc(leftEyeX, eyeY, eyeSize, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Mata kanan
-      ctx.beginPath();
-      ctx.arc(rightEyeX, eyeY, eyeSize, 0, Math.PI * 2);
-      ctx.fill();
     }
   }, [snake, GRID_SIZE, gridToPixel]);
 
@@ -129,7 +106,7 @@ export const useGameRenderer = ({
       ctx.fillStyle = particle.color;
       ctx.globalAlpha = particle.alpha;
       ctx.beginPath();
-      ctx.arc(particle.x, particle.y, 3, 0, Math.PI * 2);
+      ctx.arc(particle.x, particle.y, particle.size / 2, 0, Math.PI * 2);
       ctx.fill();
     });
     ctx.globalAlpha = 1;
@@ -143,29 +120,16 @@ export const useGameRenderer = ({
     if (!ctx) return;
 
     // Clear canvas
-    ctx.fillStyle = '#111111';
-    ctx.fillRect(0, 0, canvasSize, canvasSize);
+    ctx.clearRect(0, 0, canvasSize, canvasSize);
 
-    // Draw components
+    // Draw game elements
     drawGrid(ctx);
     drawSnake(ctx);
     drawFood(ctx);
     drawParticles(ctx);
   }, [canvasRef, canvasSize, drawGrid, drawSnake, drawFood, drawParticles]);
 
-  const generateFood = useCallback((): Point => {
-    let newFood: Point;
-    do {
-      newFood = {
-        x: Math.floor(Math.random() * (canvasSize / GRID_SIZE)),
-        y: Math.floor(Math.random() * (canvasSize / GRID_SIZE)),
-      };
-    } while (snake.some(segment => segment.x === newFood.x && segment.y === newFood.y));
-    return newFood;
-  }, [canvasSize, GRID_SIZE, snake]);
-
   return {
-    drawGame,
-    generateFood,
+    drawGame
   };
 };
