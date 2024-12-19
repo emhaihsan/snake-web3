@@ -66,11 +66,6 @@ export default function Game() {
     return Math.floor(coord * GRID_SIZE);
   }, [GRID_SIZE]);
 
-  // Fungsi untuk mengkonversi pixel ke koordinat grid
-  const pixelToGrid = useCallback((pixel: number) => {
-    return Math.floor(pixel / GRID_SIZE);
-  }, [GRID_SIZE]);
-
   const generateFood = useCallback((): Point => {
     const newFood: Point = {
       x: Math.floor(Math.random() * CELL_COUNT),
@@ -93,7 +88,6 @@ export default function Game() {
     food: food,
     particles,
     gridToPixel,
-    direction: direction
   });
 
   const drawGame = useCallback(() => {
@@ -169,8 +163,6 @@ export default function Game() {
       gameStarted,
       level
     },
-    canvasSize,
-    GRID_SIZE,
     updateGameState,
     createFoodParticles,
     generateFood,
@@ -179,6 +171,21 @@ export default function Game() {
     drawGame,
     getSnakeSpeed
   });
+
+  useEffect(() => {
+    if (gameStarted && !gameOver) {
+      window.addEventListener('keydown', handleKeyPress);
+      const gameLoop = setInterval(() => {
+        moveSnake();
+        drawGame();
+      }, getSnakeSpeed);
+
+      return () => {
+        window.removeEventListener('keydown', handleKeyPress);
+        clearInterval(gameLoop);
+      };
+    }
+  }, [gameStarted, gameOver, handleKeyPress, moveSnake, drawGame, getSnakeSpeed]);
 
   // Start game with smart contract
   const startGame = async () => {
@@ -454,7 +461,7 @@ export default function Game() {
             </div>
 
             {/* Leaderboard Section */}
-            <div className="mt-4 sm:mt-6 w-full px-2" style={{ maxWidth: canvasSize + 50 }}>
+            <div className="mt-4 sm:mt-6 w-full px-2">
               <div className="flex flex-col gap-4">
                 <h2 className="text-xl font-bold bg-gradient-to-r from-yellow-500 to-yellow-300 bg-clip-text text-transparent">
                   🏆 Top 100 Players

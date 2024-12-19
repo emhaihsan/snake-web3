@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Point, Direction } from '@/types/game';
+import { Point } from '@/types/game';
 import { FoodParticle } from '@/types/particle';
 
 interface GameRendererProps {
@@ -10,7 +10,6 @@ interface GameRendererProps {
   food: Point;
   particles: FoodParticle[];
   gridToPixel: (coord: number) => number;
-  direction: Direction;
 }
 
 export const useGameRenderer = ({
@@ -20,8 +19,7 @@ export const useGameRenderer = ({
   snake,
   food,
   particles,
-  gridToPixel,
-  direction
+  gridToPixel
 }: GameRendererProps) => {
   const drawGrid = useCallback((ctx: CanvasRenderingContext2D) => {
     ctx.strokeStyle = '#222222';

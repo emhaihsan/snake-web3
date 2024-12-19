@@ -3,8 +3,6 @@ import { Point, GameState } from '@/types/game';
 
 interface UseGameLogicProps {
     gameState: GameState;
-    canvasSize: number;
-    GRID_SIZE: number;
     updateGameState: (updates: Partial<GameState>) => void;
     createFoodParticles: (x: number, y: number) => void;
     generateFood: () => Point;
@@ -16,8 +14,6 @@ interface UseGameLogicProps {
 
 export const useGameLogic = ({
     gameState,
-    canvasSize,
-    GRID_SIZE,
     updateGameState,
     createFoodParticles,
     generateFood,
@@ -37,7 +33,7 @@ export const useGameLogic = ({
     const moveSnake = useCallback(() => {
         const newSnake = [...snake];
         const head = { ...newSnake[0] };
-        let newHead = { ...head };
+        const newHead = { ...head };
 
         switch (direction) {
             case 'UP':
