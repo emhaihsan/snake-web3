@@ -381,7 +381,7 @@ export default function Game() {
         <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 sm:gap-6 lg:gap-8">
           {/* Game Section */}
           <div className="flex flex-col items-center gap-4 sm:gap-6">
-            <div className="relative w-full flex justify-center">
+            <div className="relative flex justify-center">
               <div className="absolute -inset-1.5 sm:-inset-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-lg blur opacity-20"></div>
               <div className="relative bg-gray-900 p-2 sm:p-4 rounded-lg shadow-neon">
                 <canvas 
