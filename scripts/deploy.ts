@@ -30,11 +30,11 @@ async function main() {
         console.log(`Snake Game: ${snakeGameAddress}`);
         console.log("\nVerify contracts on Lisk Sepolia:");
         console.log("--------------------------------");
-        console.log(`npx hardhat verify --network lisk-sepolia ${uloTokenAddress}`);
-        console.log(`npx hardhat verify --network lisk-sepolia ${snakeGameAddress} ${uloTokenAddress}`);
+        console.log(`npx hardhat verify --network lisk ${uloTokenAddress}`);
+        console.log(`npx hardhat verify --network lisk ${snakeGameAddress} ${uloTokenAddress}`);
         console.log("\nView contracts on Lisk Sepolia Explorer:");
-        console.log(`https://sepolia-blockscout.lisk.com/address/${uloTokenAddress}`);
-        console.log(`https://sepolia-blockscout.lisk.com/address/${snakeGameAddress}`);
+        console.log(`https://blockscout.lisk.com/address/${uloTokenAddress}`);
+        console.log(`https://blockscout.lisk.com/address/${snakeGameAddress}`);
     } catch (error) {
         console.error("Deployment failed:", error);
         throw error;
